@@ -31,21 +31,6 @@ Object.assign(GetItem.prototype, {
       });
   },
 
-  lookupStub: function(itemPath, query) {
-    return this.getRequestStubs()
-      .then(function (stubs) {
-        for (var i = 0; i < stubs.length; i++) {
-          if (
-            itemPath === stubs[i].path
-            && queryDictsMatch(query, stubs[i].query)
-          ) {
-            var file = path.resolve('items', stubs[i].file + '.json');
-            return {name: stubs[i].name, file: file};
-          }
-        }
-      });
-  },
-
   saveStub: function(stub) {
     return this.getRequestStubs()
       .then(function (stubs) {
@@ -65,20 +50,46 @@ Object.assign(GetItem.prototype, {
     return nameComponents.join('_');
   },
 
+  lookupStub: function(req) {
+    var itemPath = req.params.path;
+    var query = req.query;
+    return this.getRequestStubs()
+      .then(function (stubs) {
+        for (var i = 0; i < stubs.length; i++) {
+          if (
+            itemPath === stubs[i].path
+            && queryDictsMatch(query, stubs[i].query)
+          ) {
+            var file = path.resolve('items', stubs[i].file + '.json');
+            return {name: stubs[i].name, file: file};
+          }
+        }
+      })
+      .then(function (stub) {
+        if (stub) {
+          console.log(`  Matched stub "${stub.name}"`);
+          return readFile(stub.file);
+        } else {
+          // TODO this isn't exceptional, shouldnt be an error
+          throw new Error('Request did not match any item stub.');
+        }
+      }.bind(this));
+  },
+
   // Middleware which attempts to match a stub.
   matchStub: function(req, res, next) {
     console.log(req.params.path, req.query);
 
-    this.lookupStub(req.params.path, req.query)
-      .then(function (stub) {
-        if (stub) {
-          console.log(`  Matched stub "${stub.name}"`);
-          return res.sendFile(stub.file);
+    this.lookupStub(req)
+      .then(function (body) {
+        return res.end(body);
+      })
+      .catch(function (err) {
+        if (this.createStubs) {
+          return next();
         }
-        if (!this.createStubs) return res.status(500).end(
-          'Request did not match any item stub.'
-        );
-        next();
+        console.log(err.message);
+        return res.status(500).end(err.message);
       }.bind(this));
   },
 
