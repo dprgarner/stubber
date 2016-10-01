@@ -7,6 +7,10 @@ const opts = {
 };
 
 var app = express();
+app.use(function (req, res, next) {
+  req.opts = opts;
+  next();
+});
 app.get('/favicon.ico', function (req, res) {});
 
 require('./getItem').add(app, opts);
