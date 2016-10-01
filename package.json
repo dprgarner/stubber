@@ -1,0 +1,23 @@
+{
+  "name": "stubber",
+  "version": "0.0.1",
+  "description": "An HTTP stubber which can also generate stubs.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "mocha -c"
+  },
+  "author": "David Garner",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.4.6",
+    "express": "^4.14.0",
+    "lodash": "^4.16.2",
+    "request": "^2.75.0",
+    "request-promise": "^4.1.1"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.1.0"
+  }
+}

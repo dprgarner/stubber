@@ -1,0 +1,16 @@
+Brief:
+
+- Determine what kind of a request is being made, e.g. GET for /item/ or /search/ or /signal/, or POST for /signal/.
+- Route to the appropriate middleware(?) function for that type
+  -- maybe not middleware yet- just return a Success or Fail JSON, with either the response headers/stream or filepath to be used, or a 500/no response/these were the headers response.
+- If successful, return the response.
+- If not successful,
+  - If not in rebase mode, return the 500/no stub error.
+  - If in rebase mode, construct the stub:
+    - Make the original request of the rebase source server - same body, params, everything.
+    - Use the 'middleware' function to get a streamlined version of the stub, e.g. just the interesting parameters for searches.
+    - Append the stub to a JSON file. (Bah - we'll have to load, parse, write it each time.)
+    - Save the file to a stub file (either create a readable slug of the request, or use a hash of the request or the response)
+    - Serve up the response.
+
+- Ambitious idea: if there's a way of shutting down gracefully, then log which stubs were and weren't called during execution.
