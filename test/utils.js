@@ -1,5 +1,5 @@
-const utils = require('../utils');
 const expect = require('chai').expect;
+const utils = require('../utils');
 
 describe('utils', function () {
   describe('queryDictsMatch', function () {
