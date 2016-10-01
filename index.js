@@ -7,6 +7,7 @@ const opts = {
 };
 
 var app = express();
+app.get('/favicon.ico', function (req, res) {});
 
 require('./getItem').add(app, opts);
 
