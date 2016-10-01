@@ -1,18 +1,21 @@
+const sinon = require('sinon');
 const expect = require('chai').expect;
-const getItem = require('../getItem');
+const GetItem = require('../GetItem');
 
-describe('getItem', function () {
-  describe('getName', function () {
-    var getName = getItem.getName;
+describe('GetItem', function () {
+  beforeEach(function () {
+    this.getItem = new GetItem({get: sinon.stub()}, {})
+  });
 
+  describe('getStubName', function () {
     it('appends each arg', function () {
-      expect(getName({
+      expect(this.getItem.getStubName({
         postId: '1',
       })).to.equal('comments_postId-1');
     });
 
     it('concatenates arrays', function () {
-      expect(getName({
+      expect(this.getItem.getStubName({
         postId: '1',
         fq: ['a', 'b'],
       })).to.equal('comments_postId-1_fq-a-b');
