@@ -24,7 +24,12 @@ var getRequests = [{
   query: {
     postId: '1'
   },
-  file: 'comments_postId-1'
+}, {
+  name: 'comments_postId-2',
+  path: 'comments',
+  query: {
+    postId: '2'
+  },
 }];
 
 var responseJson = [{
@@ -107,13 +112,27 @@ describe('GetComments in stub-only mode', function () {
 
   it('errors when stub does not exist', function () {
     return request({
-      uri: appUri + '/comments?postId=2',
+      uri: appUri + '/comments?postId=3',
       json: true,
     }).then(function () {
       throw new Error('Expected an error response');
     }).catch(function (err) {
       if (!err.statusCode) throw err;
       expect(err.statusCode).to.equal(500);
+    });
+  });
+
+  it('records all requests made', function () {
+    return request({
+      uri: appUri + '/comments?postId=1',
+      json: true,
+    }).then(function () {
+      return this.getComments.getRequestsMade();
+    }.bind(this)).then(function (requestsMade) {
+      expect(requestsMade).to.deep.equal({
+        'comments_postId-1': true,
+        'comments_postId-2': false,
+      });
     });
   });
 });

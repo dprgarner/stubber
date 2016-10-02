@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
+const _ = require('lodash');
 const Promise = require('bluebird');
 const request = require('request-promise');
 
@@ -10,6 +11,7 @@ const readFile = Promise.promisify(fs.readFile);
 function BaseStubber(app, opts) {
   if (!fs.existsSync(this.directory)) fs.mkdirSync(this.directory);
   this.liveSite = opts.liveSite;
+  this._requestsMade = {};
 }
 
 Object.assign(BaseStubber.prototype, {
@@ -49,6 +51,18 @@ Object.assign(BaseStubber.prototype, {
       });
   },
 
+  // Returns a dict of all the stubs which have been matched since initialisation.
+  getRequestsMade: function () {
+    var that = this;
+    return this.getRequestStubs()
+      .then(function (stubs) {
+        _.each(stubs, function (stub) {
+          if (!that._requestsMade[stub.name]) that._requestsMade[stub.name] = false;
+        });
+        return that._requestsMade;
+      });
+  },
+
   // Finds a matching stub, if any.
   lookupStub: function(req) {
     this.log(req.params.path + ', ' + JSON.stringify(req.query));
@@ -79,6 +93,7 @@ Object.assign(BaseStubber.prototype, {
       .then(function (stub) {
         if (stub) {
           this.log(`  Matched stub "${stub.name}"`);
+          this._requestsMade[stub.name] = true;
           return readFile(stub.filePath)
             .then(function (body) {
               return res.end(body);
