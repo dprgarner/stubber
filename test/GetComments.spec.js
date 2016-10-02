@@ -58,7 +58,7 @@ function setUpApp(opts, cb) {
 }
 
 function tearDownApp(cb) {
-  // if (fs.existsSync(dir)) rmdirSync(dir);
+  if (fs.existsSync(dir)) rmdirSync(dir);
   this.appServer.close(function (err) {
     if (err) return cb(err);
     this.liveServer.close(cb);
