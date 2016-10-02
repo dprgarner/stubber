@@ -82,44 +82,6 @@ function tearDownApp() {
   return Promise.all([closeApp(), closeLive()]);
 }
 
-describe('GetComments in Live mode', function () {
-  beforeEach(function () {
-    return setUpApp.call(this, {liveSite: liveUri});
-  });
-
-  afterEach(function () {
-    return tearDownApp.call(this);
-  });
-
-  it('saves and returns unrecognised responses', function () {
-    return request({
-      uri: appUri + '/comments?postId=1',
-      json: true,
-    }).then(function (responseJson) {
-      return readFile(path.resolve(dir, 'comments_postId-1.json'))
-        .then(function(fileString) {
-          var fileBody = JSON.parse(fileString);
-          expect(fileBody).to.deep.equal(responseJson);
-        });
-    });
-  });
-
-  it.skip('returns previously-saved stubs', function () {
-    var alternateResponse = {different: 'response'};
-    return writeFile(
-      path.resolve(dir, 'comments_postId-1.json'),
-      JSON.stringify(alternateResponse)
-    ).then(function () {
-      return request({
-        uri: appUri + '/comments?postId=1',
-        json: true,
-      });
-    }).then(function (actualJson) {
-      expect(actualJson).to.deep.equal(alternateResponse);
-    });
-  });
-});
-
 describe('GetComments in stub-only mode', function () {
   beforeEach(function () {
     return setUpApp.call(this, {})
@@ -142,6 +104,45 @@ describe('GetComments in stub-only mode', function () {
       json: true,
     }).then(function (actualJson) {
       expect(responseJson).to.deep.equal(actualJson);
+    });
+  });
+});
+
+describe('GetComments in Live mode', function () {
+  beforeEach(function () {
+    return setUpApp.call(this, {liveSite: liveUri});
+  });
+
+  afterEach(function () {
+    return tearDownApp.call(this);
+  });
+
+  it('saves and returns unrecognised responses', function () {
+    return request({
+      uri: appUri + '/comments?postId=1',
+      json: true,
+    }).then(function (responseJson) {
+      return readFile(path.resolve(dir, 'comments_postId-1.json'))
+        .then(function(fileString) {
+          var fileBody = JSON.parse(fileString);
+          expect(fileBody).to.deep.equal(responseJson);
+        });
+    });
+  });
+
+  it('returns previously-saved stubs', function () {
+    var alternateResponse = {different: 'response'};
+    return Promise.all([writeFile(
+      path.resolve(dir, 'comments_postId-1.json'), JSON.stringify(alternateResponse)
+    ), writeFile(
+      path.resolve(dir, 'requests.json'), JSON.stringify(requestsJson)
+    )]).then(function () {
+      return request({
+        uri: appUri + '/comments?postId=1',
+        json: true,
+      });
+    }).then(function (actualJson) {
+      expect(actualJson).to.deep.equal(alternateResponse);
     });
   });
 });
