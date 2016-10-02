@@ -1,15 +1,10 @@
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
-const _ = require('lodash');
 const Promise = require('bluebird');
-const request = require('request-promise');
-
-const queryDictsMatch = require('./utils').queryDictsMatch;
 
 const writeFile = Promise.promisify(fs.writeFile);
 const readFile = Promise.promisify(fs.readFile);
-
 
 function BaseStubber(app, opts) {
   this.liveSite = opts.liveSite;
