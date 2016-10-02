@@ -12,13 +12,16 @@ const readFile = Promise.promisify(fs.readFile);
 
 
 function GetItem(app, opts) {
-  this.createStubs = opts.createStubs;
   this.liveSite = opts.liveSite;
   app.get('/:path', this.matchStub.bind(this), this.createStub.bind(this));
 }
 
 Object.assign(GetItem.prototype, {
   requestsFile: path.resolve('items', 'requests.json'),
+
+  log: function(message) {
+    console.log(message);
+  },
 
   getRequestStubs: function() {
     return readFile(this.requestsFile)
@@ -53,6 +56,8 @@ Object.assign(GetItem.prototype, {
   lookupStub: function(req) {
     var itemPath = req.params.path;
     var query = req.query;
+    this.log(itemPath + ', ' + JSON.stringify(query));
+
     return this.getRequestStubs()
       .then(function (stubs) {
         for (var i = 0; i < stubs.length; i++) {
@@ -67,7 +72,7 @@ Object.assign(GetItem.prototype, {
       })
       .then(function (stub) {
         if (stub) {
-          console.log(`  Matched stub "${stub.name}"`);
+          this.log(`  Matched stub "${stub.name}"`);
           return readFile(stub.file);
         } else {
           // TODO this isn't exceptional, shouldnt be an error
@@ -78,17 +83,15 @@ Object.assign(GetItem.prototype, {
 
   // Middleware which attempts to match a stub.
   matchStub: function(req, res, next) {
-    console.log(req.params.path, req.query);
-
     this.lookupStub(req)
       .then(function (body) {
         return res.end(body);
       })
       .catch(function (err) {
-        if (this.createStubs) {
+        if (this.liveSite) {
           return next();
         }
-        console.log(err.message);
+        this.log(`  Error: ${err.message}`);
         return res.status(500).end(err.message);
       }.bind(this));
   },
@@ -96,23 +99,25 @@ Object.assign(GetItem.prototype, {
   // Middleware which creates the request stub, saves the response stub, and
   // returns the response.
   createStub: function(req, res) {
-    console.log(`  Did not match any stub - requesting ${req.url}`);
+    var that = this;
+    this.log(`  Did not match any stub - requesting ${req.url}`);
     var name = this.getStubName(req.query);
 
     request(this.liveSite + req.url).then(function (body) {
       return Promise.all([
         writeFile(path.resolve('items', name + '.json'), body),
-        this.saveStub({
+        that.saveStub({
           name: name,
           path: 'comments',
           query: req.query,
           file: name,
         })
       ]).then(function () {
-        console.log(`  Saved stub '${name}'`);
+        that.log(`  Saved stub '${name}'`);
         res.type('json').end(body);
       });
-    }.bind(this)).catch(function (err) {
+    }).catch(function (err) {
+      that.log(`  Error: ${err.message}`);
       res.status(500).end('Error: ' + err.message);
     });
   },

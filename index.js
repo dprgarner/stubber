@@ -3,7 +3,6 @@ const GetItem = require('./GetItem');
 
 const PORT = 3000;
 const opts = {
-  createStubs: false,
   liveSite: 'https://jsonplaceholder.typicode.com',
 };
 
