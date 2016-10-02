@@ -9,43 +9,62 @@ const rmdirSync = require('rimraf').sync;
 
 const GetComments = require('./GetComments');
 
-const dir = path.resolve(__dirname, 'comments');
-const PORT = 3000;
 const readFile = Promise.promisify(fs.readFile);
 
-function setUpApp(opts, cb) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir);
-  }
-  var app = express();
-  app.get('/favicon.ico', function (req, res) {});
+const dir = path.resolve(__dirname, 'comments');
+const APP_PORT = 3000;
+const LIVE_PORT = 3001;
+const appUri = 'http://localhost:' + APP_PORT;
+const liveUri = 'http://localhost:' + LIVE_PORT;
 
+// Imitates the dummy live server.
+function setUpLiveServer(port, cb) {
+  var app = express();
+  app.get('/comments', function (req, res) {
+    res.json([{
+      postId: 1,
+      id: 1,
+      name: 'id labore ex et quam laborum',
+      email: 'Eliseo@gardner.biz',
+      body: 'Bello!',
+    }]);
+  });
+  return app.listen(port, cb);
+}
+
+function setUpApp(opts, cb) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+
+  var app = express();
   this.getComments = new GetComments(app, opts);
-  this.server = app.listen(PORT, cb);
-  this.baseUri = 'http://localhost:' + PORT;
+  this.getComments.log = function () {};
+
+  this.appServer = app.listen(APP_PORT, function (err) {
+    if (err) return cb(err);
+    this.liveServer = setUpLiveServer(LIVE_PORT, cb);
+  }.bind(this));
 }
 
 function tearDownApp(cb) {
-  if (fs.existsSync(dir)) {
-    rmdirSync(dir);
-  }
-  this.server.close(cb);
+  if (fs.existsSync(dir)) rmdirSync(dir);
+  this.appServer.close(function (err) {
+    if (err) return cb(err);
+    this.liveServer.close(cb);
+  }.bind(this));
 }
 
 describe('GetComments in Live mode', function () {  
   beforeEach(function (done) {
-    setUpApp.call(this, {
-      liveSite: 'https://jsonplaceholder.typicode.com',
-    }, done);
+    setUpApp.call(this, {liveSite: liveUri}, done);
   });
 
   afterEach(function (done) {
     tearDownApp.call(this, done);
   });
 
-  it('can save a stub', function (done) {
+  it('saves a response and returns the saved response', function (done) {
     request({
-      uri: this.baseUri + '/comments?postId=1',
+      uri: appUri + '/comments?postId=1',
       json: true,
     }).then(function (responseJson) {
       return readFile(path.resolve(dir, 'comments_postId-1.json'))
@@ -57,4 +76,3 @@ describe('GetComments in Live mode', function () {
     }).catch(done);
   });
 });
-
