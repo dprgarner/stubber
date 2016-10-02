@@ -45,12 +45,12 @@ function listen(app, port) {
 }
 
 // Imitates the dummy live server.
-function setUpLiveServer(port) {
+function setUpLiveServer() {
   var app = express();
   app.get('/comments', function (req, res) {
     res.json(responseJson);
   });
-  return listen(app, port);
+  return listen(app, LIVE_PORT);
 }
 
 function setUpApp(opts) {
@@ -63,7 +63,7 @@ function setUpApp(opts) {
   return listen(app, APP_PORT)
     .then(function (server) {
       this.appServer = server;
-      return setUpLiveServer(LIVE_PORT)
+      return setUpLiveServer()
     }.bind(this))
     .then(function(server) {
       this.liveServer = server;
