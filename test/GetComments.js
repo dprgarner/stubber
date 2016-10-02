@@ -5,8 +5,8 @@ const _ = require('lodash');
 const Promise = require('bluebird');
 const request = require('request-promise');
 
-const BaseStubber = require('./BaseStubber');
-const queryDictsMatch = require('./utils').queryDictsMatch;
+const BaseStubber = require('../BaseStubber');
+const queryDictsMatch = require('../utils').queryDictsMatch;
 
 const readFile = Promise.promisify(fs.readFile);
 const writeFile = Promise.promisify(fs.writeFile);
@@ -17,8 +17,8 @@ function GetComments(app, opts) {
 }
 
 Object.assign(GetComments.prototype, BaseStubber.prototype, {
-  directory: 'comments',
-  requestsFile: path.resolve('comments', 'requests.json'),
+  directory: path.resolve(__dirname, 'comments'),
+  requestsFile: path.resolve(__dirname, 'comments', 'requests.json'),
 
   getStubName: function(req) {
     var nameComponents = [req.params.path];

@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 
 const Promise = require('bluebird');
 
@@ -12,8 +11,8 @@ function BaseStubber(app, opts) {
 }
 
 Object.assign(BaseStubber.prototype, {
-  requestsFile: path.resolve('items', 'requests.json'),
-  directory: 'items',
+  directory: null,
+  requestsFile: null,
 
   log: function(message) {
     console.log(message);
@@ -34,9 +33,7 @@ Object.assign(BaseStubber.prototype, {
     return this.getRequestStubs()
       .then(function (stubs) {
         stubs.push(stub);
-        return writeFile(
-          path.resolve(this.requestsFile), JSON.stringify(stubs, null, 2)
-        );
+        return writeFile(this.requestsFile, JSON.stringify(stubs, null, 2));
       }.bind(this));
   },
 
