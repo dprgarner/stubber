@@ -11,14 +11,14 @@ const queryDictsMatch = require('./utils').queryDictsMatch;
 const writeFile = Promise.promisify(fs.writeFile);
 const readFile = Promise.promisify(fs.readFile);
 
-function GetItem(app, opts) {
+function GetComments(app, opts) {
   this.liveSite = opts.liveSite;
   app.get('/:path', this.matchStub.bind(this), this.createStub.bind(this));
 }
 
-Object.assign(GetItem.prototype, BaseStubber.prototype, {
-  directory: 'items',
-  requestsFile: path.resolve('items', 'requests.json'),
+Object.assign(GetComments.prototype, BaseStubber.prototype, {
+  directory: 'comments',
+  requestsFile: path.resolve('comments', 'requests.json'),
 
   getStubName: function(req) {
     var nameComponents = ['comments'];
@@ -84,4 +84,4 @@ Object.assign(GetItem.prototype, BaseStubber.prototype, {
   },
 });
 
-module.exports = GetItem;
+module.exports = GetComments;

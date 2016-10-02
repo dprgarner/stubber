@@ -9,7 +9,7 @@ const opts = {
 var app = express();
 app.get('/favicon.ico', function (req, res) {});
 
-new GetItem(app, opts);
+new GetComments(app, opts);
 
 app.listen(PORT);
 console.log(`App listening on port ${PORT}`);
