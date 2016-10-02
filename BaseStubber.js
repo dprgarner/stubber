@@ -8,7 +8,8 @@ const writeFile = Promise.promisify(fs.writeFile);
 const readFile = Promise.promisify(fs.readFile);
 
 function BaseStubber(app, opts) {
-  throw new Error('Not implemented');
+  if (!fs.existsSync(this.directory)) fs.mkdirSync(this.directory);
+  this.liveSite = opts.liveSite;
 }
 
 Object.assign(BaseStubber.prototype, {
@@ -36,7 +37,7 @@ Object.assign(BaseStubber.prototype, {
     console.log(message);
   },
 
-  // Returns parsed requests.json.
+  // Returns the parsed requests json file.
   getRequestStubs: function() {
     return readFile(this.requestsFile)
       .catch(function (err) {
@@ -63,7 +64,7 @@ Object.assign(BaseStubber.prototype, {
       }.bind(this));
   },
 
-  // Appends stub to requests.json and saves.
+  // Appends stub to requests json file and saves.
   saveStub: function(stub) {
     return this.getRequestStubs()
       .then(function (stubs) {
@@ -101,6 +102,7 @@ Object.assign(BaseStubber.prototype, {
     this.log(`  Did not match any stub - requesting ${req.url}`);
     var name = this.getStubName(req);
 
+    // TODO fix the tests to use different stubs, this wasn't caught!!!
     request(this.liveSite + req.url).then(function (body) {
       return Promise.all([
         writeFile(path.resolve(that.directory, name + '.json'), body),

@@ -7,8 +7,7 @@ const BaseStubber = require('../BaseStubber');
 const queryDictsMatch = require('../utils').queryDictsMatch;
 
 function GetComments(app, opts) {
-  if (!fs.existsSync(this.directory)) fs.mkdirSync(this.directory);
-  this.liveSite = opts.liveSite;
+  BaseStubber.call(this, app, opts);
   app.get('/:path', this.matchStub.bind(this), this.saveAndReturnStub.bind(this));
 }
 

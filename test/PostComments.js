@@ -9,8 +9,7 @@ const BaseStubber = require('../BaseStubber');
 const queryDictsMatch = require('../utils').queryDictsMatch;
 
 function PostComments(app, opts) {
-  if (!fs.existsSync(this.directory)) fs.mkdirSync(this.directory);
-  this.liveSite = opts.liveSite;
+  BaseStubber.call(this, app, opts);
   app.post(
     '/:path',
     jsonParser,

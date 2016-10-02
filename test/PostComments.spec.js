@@ -7,7 +7,7 @@ const Promise = require('bluebird');
 const request = require('request-promise');
 const rmdirSync = require('rimraf').sync;
 
-const GetComments = require('./GetComments');
+const PostComments = require('./PostComments');
 
 const readFile = Promise.promisify(fs.readFile);
 const writeFile = Promise.promisify(fs.writeFile);
@@ -18,13 +18,14 @@ const LIVE_PORT = 3006;
 const appUri = 'http://localhost:' + APP_PORT;
 const liveUri = 'http://localhost:' + LIVE_PORT;
 
-var getRequests = [{
-  name: 'comments_postId-1',
+var postRequests = [{
+  name: 'comments_hello-world',
   path: 'comments',
-  query: {
-    postId: '1'
+  query: {},
+  body: {
+    hello: 'world',
   },
-  file: 'comments_postId-1'
+  file: 'comments_hello-world'
 }];
 
 var responseJson = [{
@@ -47,7 +48,7 @@ function listen(app, port) {
 // Sets up a dummy live server that accepts gets and posts.
 function setUpLiveServer() {
   var app = express();
-  app.get('/comments', function (req, res) {
+  app.post('/comments', function (req, res) {
     res.json(responseJson);
   });
   return listen(app, LIVE_PORT);
@@ -67,8 +68,8 @@ function tearDownApp() {
 
 function setUpApp(opts) {
   var app = express();
-  this.getComments = new GetComments(app, opts);
-  this.getComments.log = function () {};
+  this.postComments = new PostComments(app, opts);
+  this.postComments.log = function () {};
 
   return listen(app, APP_PORT)
     .then(function (server) {
@@ -80,14 +81,14 @@ function setUpApp(opts) {
     }.bind(this));
 }
 
-describe('GetComments in stub-only mode', function () {
+describe('PostComments in stub-only mode', function () {
   beforeEach(function () {
     return setUpApp.call(this, {})
       .then(function () {
         return Promise.all([writeFile(
-          path.resolve(dir, 'comments_postId-1.json'), JSON.stringify(responseJson)
+          path.resolve(dir, 'comments_hello-world.json'), JSON.stringify(responseJson)
         ), writeFile(
-          path.resolve(dir, 'requests.json'), JSON.stringify(getRequests)
+          path.resolve(dir, 'postRequests.json'), JSON.stringify(postRequests)
         )])
       });
   });
@@ -98,8 +99,12 @@ describe('GetComments in stub-only mode', function () {
 
   it('returns previously-saved stubs', function () {
     return request({
-      uri: appUri + '/comments?postId=1',
+      uri: appUri + '/comments',
       json: true,
+      method: 'POST',
+      body: {
+        hello: 'world',
+      },
     }).then(function (actualJson) {
       expect(responseJson).to.deep.equal(actualJson);
     });
@@ -107,8 +112,12 @@ describe('GetComments in stub-only mode', function () {
 
   it('errors when stub does not exist', function () {
     return request({
-      uri: appUri + '/comments?postId=2',
+      uri: appUri + '/comments',
       json: true,
+      method: 'POST',
+      body: {
+        hello: 'not the world',
+      },
     }).then(function () {
       throw new Error('Expected an error response');
     }).catch(function (err) {
@@ -118,7 +127,7 @@ describe('GetComments in stub-only mode', function () {
   });
 });
 
-describe('GetComments in Live mode', function () {
+describe('PostComments in Live mode', function () {
   beforeEach(function () {
     return setUpApp.call(this, {liveSite: liveUri});
   });
@@ -129,10 +138,14 @@ describe('GetComments in Live mode', function () {
 
   it('saves and returns unrecognised responses', function () {
     return request({
-      uri: appUri + '/comments?postId=1',
+      uri: appUri + '/comments',
       json: true,
+      method: 'POST',
+      body: {
+        hello: 'world',
+      },
     }).then(function (responseJson) {
-      return readFile(path.resolve(dir, 'comments_postId-1.json'))
+      return readFile(path.resolve(dir, 'comments_hello-world.json'))
         .then(function(fileString) {
           var fileBody = JSON.parse(fileString);
           expect(fileBody).to.deep.equal(responseJson);
@@ -143,13 +156,17 @@ describe('GetComments in Live mode', function () {
   it('returns previously-saved stubs', function () {
     var alternateResponse = {different: 'response'};
     return Promise.all([writeFile(
-      path.resolve(dir, 'comments_postId-1.json'), JSON.stringify(alternateResponse)
+      path.resolve(dir, 'comments_hello-world.json'), JSON.stringify(alternateResponse)
     ), writeFile(
-      path.resolve(dir, 'requests.json'), JSON.stringify(getRequests)
+      path.resolve(dir, 'postRequests.json'), JSON.stringify(postRequests)
     )]).then(function () {
       return request({
-        uri: appUri + '/comments?postId=1',
+        uri: appUri + '/comments',
         json: true,
+        method: 'POST',
+        body: {
+          hello: 'world',
+        },
       });
     }).then(function (actualJson) {
       expect(actualJson).to.deep.equal(alternateResponse);
