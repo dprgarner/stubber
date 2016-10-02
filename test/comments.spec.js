@@ -20,22 +20,22 @@ const appUri = 'http://localhost:' + APP_PORT;
 const liveUri = 'http://localhost:' + LIVE_PORT;
 
 var getRequests = [{
-  "name": "comments_postId-1",
-  "path": "comments",
-  "query": {
-    "postId": "1"
+  name: 'comments_postId-1',
+  path: 'comments',
+  query: {
+    postId: '1'
   },
-  "file": "comments_postId-1"
+  file: 'comments_postId-1'
 }];
 
 var postRequests = [{
-  "name": "comments_hello-world",
-  "path": "comments",
-  "query": {},
-  "body": {
-    "hello": "world",
+  name: 'comments_hello-world',
+  path: 'comments',
+  query: {},
+  body: {
+    hello: 'world',
   },
-  "file": "comments_hello-world"
+  file: 'comments_hello-world'
 }];
 
 var responseJson = [{
@@ -127,7 +127,7 @@ describe('GetComments in stub-only mode', function () {
       uri: appUri + '/comments?postId=2',
       json: true,
     }).then(function () {
-      throw new Error("Expected an error response");
+      throw new Error('Expected an error response');
     }).catch(function (err) {
       if (!err.statusCode) throw err;
       expect(err.statusCode).to.equal(500);
@@ -173,7 +173,7 @@ describe('PostComments in stub-only mode', function () {
         hello: 'not the world',
       },
     }).then(function () {
-      throw new Error("Expected an error response");
+      throw new Error('Expected an error response');
     }).catch(function (err) {
       if (!err.statusCode) throw err;
       expect(err.statusCode).to.equal(500);
