@@ -21,7 +21,7 @@ Object.assign(GetComments.prototype, BaseStubber.prototype, {
   requestsFile: path.resolve('comments', 'requests.json'),
 
   getStubName: function(req) {
-    var nameComponents = ['comments'];
+    var nameComponents = [req.params.path];
     nameComponents = nameComponents.concat(_.map(req.query, function (val, key) {
       var valString = (_.isArray(val)) ? val.join('-') : val;
       return key +  '-' + valString;
@@ -29,6 +29,7 @@ Object.assign(GetComments.prototype, BaseStubber.prototype, {
     return nameComponents.join('_');
   },
 
+  // TODO extract out a comparison function
   lookupStub: function(req) {
     var itemPath = req.params.path;
     var query = req.query;

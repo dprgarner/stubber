@@ -1,6 +1,6 @@
 const express = require('express');
 
-const GetItem = require('./GetItem');
+const GetComments = require('./GetComments');
 
 const PORT = 3000;
 const opts = {
