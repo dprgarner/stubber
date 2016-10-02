@@ -85,7 +85,7 @@ function setUpApp(opts) {
     }.bind(this));
 }
 
-describe('GetComments in stub-only mode', function () {
+describe('GetComments in existing-stubs mode', function () {
   beforeEach(function () {
     return setUpApp.call(this, {})
       .then(function () {
@@ -137,7 +137,7 @@ describe('GetComments in stub-only mode', function () {
   });
 });
 
-describe('GetComments in Live mode', function () {
+describe('GetComments in create-stubs mode', function () {
   beforeEach(function () {
     return setUpApp.call(this, {liveSite: liveUri});
   });

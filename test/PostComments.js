@@ -15,7 +15,7 @@ function PostComments(app, opts) {
 }
 
 Object.assign(PostComments.prototype, BaseStubber.prototype, {
-  directory: path.resolve(__dirname, 'comments'),
+  responsesDir: path.resolve(__dirname, 'comments'),
   requestsFile: path.resolve(__dirname, 'comments', 'postRequests.json'),
 });
 

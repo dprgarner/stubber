@@ -12,13 +12,13 @@ const writeFile = Promise.promisify(fs.writeFile);
 const readFile = Promise.promisify(fs.readFile);
 
 function BaseStubber(app, opts) {
-  if (!fs.existsSync(this.directory)) fs.mkdirSync(this.directory);
+  if (!fs.existsSync(this.responsesDir)) fs.mkdirSync(this.responsesDir);
   this.liveSite = opts.liveSite;
   this._requestsMade = {};
 }
 
 Object.assign(BaseStubber.prototype, {
-  directory: null,
+  responsesDir: null,
   requestsFile: null,
 
   log: function(message) {
@@ -64,13 +64,17 @@ Object.assign(BaseStubber.prototype, {
 
   // Finds a matching stub, if any.
   lookupStub: function(req) {
-    this.log(req.params.path + ', ' + JSON.stringify(req.query));
+    this.log(
+      req.params.path
+      + ', ' + JSON.stringify(req.query)
+      + ', ' + JSON.stringify(req.body || '')
+    );
 
     return this.getRequestStubs()
       .then(function (stubs) {
         for (var i = 0; i < stubs.length; i++) {
           if (this.matches(req, stubs[i])) {
-            var filePath = path.resolve(this.directory, stubs[i].name + '.json');
+            var filePath = path.resolve(this.responsesDir, stubs[i].name + '.json');
             return {name: stubs[i].name, filePath: filePath};
           }
         }
@@ -91,12 +95,18 @@ Object.assign(BaseStubber.prototype, {
         } else if (this.liveSite) {
           return next();
         } else {
-          throw new Error('Request did not match any item stub.');
+          throw new Error('Request did not match any stub.');
         }
       }.bind(this))
       .catch(function (err) {
-        this.log(`  Error: ${err.message}`);
-        return res.status(500).end(err.message);
+        var errorMessage = [
+          '  Error: ' + err.message,
+          '  Request Path: ' + req.params.path,
+          '  Request QueryDict: ' + JSON.stringify(req.query),
+          '  Request Body: ' + JSON.stringify(req.body || ''),
+        ].join('\n');
+        this.log(errorMessage);
+        return res.status(500).end(errorMessage);
       }.bind(this));
   },
 
@@ -151,16 +161,22 @@ Object.assign(BaseStubber.prototype, {
 
     request(data).then(function (body) {
       return Promise.all([
-        writeFile(path.resolve(that.directory, name + '.json'), body),
+        writeFile(path.resolve(that.responsesDir, name + '.json'), body),
         that.saveStub(that.createStub(req, name))
       ]).then(function () {
         that.log(`  Saved stub '${name}'`);
         res.type('json').end(body);
       });
     }).catch(function (err) {
-      that.log(`  Error: ${err.message}`);
-      res.status(500).end('Error: ' + err.message);
-    });
+      var errorMessage = [
+        '  Error: ' + err.message,
+        '  Request Path: ' + req.params.path,
+        '  Request QueryDict: ' + JSON.stringify(req.query),
+        '  Request Body: ' + JSON.stringify(req.body || ''),
+      ].join('\n');
+      this.log(errorMessage);
+      return res.status(500).end(errorMessage);
+    }.bind(this));
   },
 });
 

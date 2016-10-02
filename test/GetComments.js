@@ -8,7 +8,7 @@ function GetComments(app, opts) {
 }
 
 Object.assign(GetComments.prototype, BaseStubber.prototype, {
-  directory: path.resolve(__dirname, 'comments'),
+  responsesDir: path.resolve(__dirname, 'comments'),
   requestsFile: path.resolve(__dirname, 'comments', 'requests.json'),
 });
 
