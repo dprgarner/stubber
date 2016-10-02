@@ -55,7 +55,7 @@ function listen(app, port) {
   });
 }
 
-// Imitates the dummy live server.
+// Sets up a dummy live server that accepts gets and posts.
 function setUpLiveServer() {
   var app = express();
   app.get('/comments', function (req, res) {

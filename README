@@ -14,3 +14,7 @@ Brief:
     - Serve up the response.
 
 - Ambitious idea: if there's a way of shutting down gracefully, then log which stubs were and weren't called during execution.
+
+---------
+
+So far, everything except for "log what requests weren't made" has been done.
