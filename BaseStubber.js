@@ -2,8 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 const _ = require('lodash');
+const equal = require('deep-equal')
 const Promise = require('bluebird');
 const request = require('request-promise');
+
+const queryDictsMatch = require('./utils').queryDictsMatch;
 
 const writeFile = Promise.promisify(fs.writeFile);
 const readFile = Promise.promisify(fs.readFile);
@@ -17,23 +20,6 @@ function BaseStubber(app, opts) {
 Object.assign(BaseStubber.prototype, {
   directory: null,
   requestsFile: null,
-
-  // Generates a name for the stub from the request object.
-  getStubName: function (req) {
-    throw new Error('Not implemented');
-  },
-
-  // Boolean function for determining whether a request object and a saved
-  // stub match.
-  matches: function(req, savedStub) {
-    throw new Error('Not implemented');
-  },
-
-  // A function for determining how the saved stub is generated from the
-  // request.
-  createStub: function (req, name) {
-    throw new Error('Not implemented');
-  },
 
   log: function(message) {
     console.log(message);
@@ -63,6 +49,19 @@ Object.assign(BaseStubber.prototype, {
       });
   },
 
+  // Boolean function for determining whether a request object and a saved
+  // stub match.
+  matches: function(req, savedStub) {
+    var itemPath = req.params.path;
+    var query = req.query;
+    var body = req.body;
+    return (
+      itemPath === savedStub.path
+      && queryDictsMatch(query, savedStub.query)
+      && equal(body, savedStub.body)
+    );
+  },
+
   // Finds a matching stub, if any.
   lookupStub: function(req) {
     this.log(req.params.path + ', ' + JSON.stringify(req.query));
@@ -75,15 +74,6 @@ Object.assign(BaseStubber.prototype, {
             return {name: stubs[i].name, filePath: filePath};
           }
         }
-      }.bind(this));
-  },
-
-  // Appends stub to requests json file and saves.
-  saveStub: function(stub) {
-    return this.getRequestStubs()
-      .then(function (stubs) {
-        stubs.push(stub);
-        return writeFile(this.requestsFile, JSON.stringify(stubs, null, 2));
       }.bind(this));
   },
 
@@ -107,6 +97,41 @@ Object.assign(BaseStubber.prototype, {
       .catch(function (err) {
         this.log(`  Error: ${err.message}`);
         return res.status(500).end(err.message);
+      }.bind(this));
+  },
+
+  // Generates a name for the stub from the request object.
+  getStubName: function(req) {
+    var nameComponents = [req.params.path];
+    nameComponents = nameComponents.concat(_.map(req.query, function (val, key) {
+      var valString = (_.isArray(val)) ? val.join('-') : val;
+      return key +  '-' + valString;
+    }));
+    nameComponents = nameComponents.concat(_.map(req.body, function (val, key) {
+      var valString = (_.isArray(val)) ? val.join('-') : val;
+      return key +  '-' + valString;
+    }));
+    return nameComponents.join('_');
+  },
+
+  // A function for determining how the saved stub is generated from the
+  // request.
+  createStub: function (req, name) {
+    var stub = {
+      name: name,
+      path: req.params.path,
+      query: req.query,
+    };
+    if (req.body) stub.body = req.body
+    return stub;
+  },
+
+  // Appends stub to requests json file and saves.
+  saveStub: function(stub) {
+    return this.getRequestStubs()
+      .then(function (stubs) {
+        stubs.push(stub);
+        return writeFile(this.requestsFile, JSON.stringify(stubs, null, 2));
       }.bind(this));
   },
 
