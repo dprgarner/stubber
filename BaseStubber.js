@@ -102,8 +102,14 @@ Object.assign(BaseStubber.prototype, {
     this.log(`  Did not match any stub - requesting ${req.url}`);
     var name = this.getStubName(req);
 
-    // TODO fix the tests to use different stubs, this wasn't caught!!!
-    request(this.liveSite + req.url).then(function (body) {
+    var data = {
+      method: req.method,
+      uri: this.liveSite + req.url,
+      query: req.query,
+    };
+    if (req.method === 'POST') data.body = JSON.stringify(req.body);
+
+    request(data).then(function (body) {
       return Promise.all([
         writeFile(path.resolve(that.directory, name + '.json'), body),
         that.saveStub(that.createStub(req, name))
