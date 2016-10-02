@@ -1,0 +1,9 @@
+[
+  {
+    "name": "comments_postId-1",
+    "path": "comments",
+    "query": {
+      "postId": "1"
+    }
+  }
+]
