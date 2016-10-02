@@ -54,8 +54,6 @@ function setUpLiveServer() {
 }
 
 function setUpApp(opts) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-
   var app = express();
   this.getComments = new GetComments(app, opts);
   this.getComments.log = function () {};

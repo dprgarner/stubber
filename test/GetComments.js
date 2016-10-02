@@ -14,6 +14,7 @@ const writeFile = Promise.promisify(fs.writeFile);
 function GetComments(app, opts) {
   this.liveSite = opts.liveSite;
   app.get('/:path', this.matchStub.bind(this), this.createStub.bind(this));
+  if (!fs.existsSync(this.directory)) fs.mkdirSync(this.directory);
 }
 
 Object.assign(GetComments.prototype, BaseStubber.prototype, {
