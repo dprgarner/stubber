@@ -5,48 +5,24 @@ const _ = require('lodash');
 const Promise = require('bluebird');
 const request = require('request-promise');
 
+const BaseStubber = require('./BaseStubber');
 const queryDictsMatch = require('./utils').queryDictsMatch;
 
 const writeFile = Promise.promisify(fs.writeFile);
 const readFile = Promise.promisify(fs.readFile);
-
 
 function GetItem(app, opts) {
   this.liveSite = opts.liveSite;
   app.get('/:path', this.matchStub.bind(this), this.createStub.bind(this));
 }
 
-Object.assign(GetItem.prototype, {
+Object.assign(GetItem.prototype, BaseStubber.prototype, {
+  directory: 'items',
   requestsFile: path.resolve('items', 'requests.json'),
 
-  log: function(message) {
-    console.log(message);
-  },
-
-  getRequestStubs: function() {
-    return readFile(this.requestsFile)
-      .catch(function (err) {
-        if (err.code === 'ENOENT') return '[]';
-        throw err;
-      })
-      .then(function (bodyString) {
-        return JSON.parse(bodyString);
-      });
-  },
-
-  saveStub: function(stub) {
-    return this.getRequestStubs()
-      .then(function (stubs) {
-        stubs.push(stub);
-        return writeFile(
-          path.resolve(this.requestsFile), JSON.stringify(stubs, null, 2)
-        );
-      }.bind(this));
-  },
-
-  getStubName: function(query) {
+  getStubName: function(req) {
     var nameComponents = ['comments'];
-    nameComponents = nameComponents.concat(_.map(query, function (val, key) {
+    nameComponents = nameComponents.concat(_.map(req.query, function (val, key) {
       var valString = (_.isArray(val)) ? val.join('-') : val;
       return key +  '-' + valString;
     }));
@@ -65,11 +41,11 @@ Object.assign(GetItem.prototype, {
             itemPath === stubs[i].path
             && queryDictsMatch(query, stubs[i].query)
           ) {
-            var file = path.resolve('items', stubs[i].file + '.json');
+            var file = path.resolve(this.directory, stubs[i].file + '.json');
             return {name: stubs[i].name, file: file};
           }
         }
-      })
+      }.bind(this))
       .then(function (stub) {
         if (stub) {
           this.log(`  Matched stub "${stub.name}"`);
@@ -81,31 +57,16 @@ Object.assign(GetItem.prototype, {
       }.bind(this));
   },
 
-  // Middleware which attempts to match a stub.
-  matchStub: function(req, res, next) {
-    this.lookupStub(req)
-      .then(function (body) {
-        return res.end(body);
-      })
-      .catch(function (err) {
-        if (this.liveSite) {
-          return next();
-        }
-        this.log(`  Error: ${err.message}`);
-        return res.status(500).end(err.message);
-      }.bind(this));
-  },
-
   // Middleware which creates the request stub, saves the response stub, and
   // returns the response.
   createStub: function(req, res) {
     var that = this;
     this.log(`  Did not match any stub - requesting ${req.url}`);
-    var name = this.getStubName(req.query);
+    var name = this.getStubName(req);
 
     request(this.liveSite + req.url).then(function (body) {
       return Promise.all([
-        writeFile(path.resolve('items', name + '.json'), body),
+        writeFile(path.resolve(that.directory, name + '.json'), body),
         that.saveStub({
           name: name,
           path: 'comments',
