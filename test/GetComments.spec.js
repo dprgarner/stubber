@@ -106,6 +106,18 @@ describe('GetComments in stub-only mode', function () {
       expect(responseJson).to.deep.equal(actualJson);
     });
   });
+
+  it('errors when stub does not exist', function () {
+    return request({
+      uri: appUri + '/comments?postId=2',
+      json: true,
+    }).then(function () {
+      throw new Error("Expected an error response");
+    }).catch(function (err) {
+      if (!err.statusCode) throw err;
+      expect(err.statusCode).to.equal(500);
+    });
+  });
 });
 
 describe('GetComments in Live mode', function () {
