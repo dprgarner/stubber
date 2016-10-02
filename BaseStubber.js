@@ -15,6 +15,23 @@ Object.assign(BaseStubber.prototype, {
   directory: null,
   requestsFile: null,
 
+  // Generates a name for the stub from the request object.
+  getStubName: function (req) {
+    throw new Error('Not implemented');
+  },
+
+  // Boolean function for determining whether a request object and a saved
+  // stub match.
+  matches: function(req, savedStub) {
+    throw new Error('Not implemented');
+  },
+
+  // A function for determining how the saved stub is generated from the
+  // request.
+  createStub: function (req, name) {
+    throw new Error('Not implemented');
+  },
+
   log: function(message) {
     console.log(message);
   },
@@ -31,7 +48,7 @@ Object.assign(BaseStubber.prototype, {
       });
   },
 
-  // Finds a matching stub if any, and errors if no matching stub.
+  // Finds a matching stub, if any.
   lookupStub: function(req) {
     this.log(req.params.path + ', ' + JSON.stringify(req.query));
 
@@ -42,15 +59,6 @@ Object.assign(BaseStubber.prototype, {
             var filePath = path.resolve(this.directory, stubs[i].name + '.json');
             return {name: stubs[i].name, filePath: filePath};
           }
-        }
-      }.bind(this))
-      .then(function (stub) {
-        if (stub) {
-          this.log(`  Matched stub "${stub.name}"`);
-          return readFile(stub.filePath);
-        } else {
-          // TODO this isn't exceptional, should not be an error.
-          throw new Error('Request did not match any item stub.');
         }
       }.bind(this));
   },
@@ -67,13 +75,20 @@ Object.assign(BaseStubber.prototype, {
   // Middleware which attempts to match a stub.
   matchStub: function(req, res, next) {
     this.lookupStub(req)
-      .then(function (body) {
-        return res.end(body);
-      })
-      .catch(function (err) {
-        if (this.liveSite) {
+      .then(function (stub) {
+        if (stub) {
+          this.log(`  Matched stub "${stub.name}"`);
+          return readFile(stub.filePath)
+            .then(function (body) {
+              return res.end(body);
+            });
+        } else if (this.liveSite) {
           return next();
+        } else {
+          throw new Error('Request did not match any item stub.');
         }
+      }.bind(this))
+      .catch(function (err) {
         this.log(`  Error: ${err.message}`);
         return res.status(500).end(err.message);
       }.bind(this));
