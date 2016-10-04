@@ -83,14 +83,14 @@ function setUpApp(opts) {
 
 describe('PostComments in stub-only mode', function () {
   beforeEach(function () {
-    return setUpApp.call(this, {})
-      .then(function () {
-        return Promise.all([writeFile(
-          path.resolve(dir, 'comments_hello-world.json'), JSON.stringify(responseJson)
-        ), writeFile(
-          path.resolve(dir, 'postRequests.json'), JSON.stringify(postRequests)
-        )])
-      });
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    fs.writeFileSync(
+      path.resolve(dir, 'comments_hello-world.json'), JSON.stringify(responseJson)
+    );
+    fs.writeFileSync(
+      path.resolve(dir, 'postRequests.json'), JSON.stringify(postRequests)
+    );
+    return setUpApp.call(this, {});
   });
 
   afterEach(function () {
@@ -128,38 +128,16 @@ describe('PostComments in stub-only mode', function () {
 });
 
 describe('PostComments in Live mode', function () {
-  beforeEach(function () {
-    return setUpApp.call(this, {liveSite: liveUri});
-  });
-
-  afterEach(function () {
-    return tearDownApp.call(this);
-  });
-
-  it('saves and returns unrecognised responses', function () {
-    return request({
-      uri: appUri + '/comments',
-      json: true,
-      method: 'POST',
-      body: {
-        hello: 'world',
-      },
-    }).then(function (responseJson) {
-      return readFile(path.resolve(dir, 'comments_hello-world.json'))
-        .then(function(fileString) {
-          var fileBody = JSON.parse(fileString);
-          expect(fileBody).to.deep.equal(responseJson);
-        });
+  describe('without existing stubs', function () {
+    beforeEach(function () {
+      return setUpApp.call(this, {liveSite: liveUri});
     });
-  });
 
-  it('returns previously-saved stubs', function () {
-    var alternateResponse = {different: 'response'};
-    return Promise.all([writeFile(
-      path.resolve(dir, 'comments_hello-world.json'), JSON.stringify(alternateResponse)
-    ), writeFile(
-      path.resolve(dir, 'postRequests.json'), JSON.stringify(postRequests)
-    )]).then(function () {
+    afterEach(function () {
+      return tearDownApp.call(this);
+    });
+
+    it('saves and returns unrecognised responses', function () {
       return request({
         uri: appUri + '/comments',
         json: true,
@@ -167,9 +145,46 @@ describe('PostComments in Live mode', function () {
         body: {
           hello: 'world',
         },
+      }).then(function (responseJson) {
+        return readFile(path.resolve(dir, 'comments_hello-world.json'))
+          .then(function(fileString) {
+            var fileBody = JSON.parse(fileString);
+            expect(fileBody).to.deep.equal(responseJson);
+          });
       });
-    }).then(function (actualJson) {
-      expect(actualJson).to.deep.equal(alternateResponse);
+    });
+  });
+
+  describe('with existing stubs', function () {
+    beforeEach(function () {
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+      this.alternateResponse = {different: 'response'};
+      fs.writeFileSync(
+        path.resolve(dir, 'comments_hello-world.json'),
+        JSON.stringify(this.alternateResponse)
+      );
+      fs.writeFileSync(
+        path.resolve(dir, 'postRequests.json'),
+        JSON.stringify(postRequests)
+      );
+      return setUpApp.call(this, {liveSite: liveUri});
+    });
+
+    afterEach(function () {
+      return tearDownApp.call(this);
+    });
+
+    it('returns previously-saved stubs', function () {
+      return request({
+        uri: appUri + '/comments',
+        json: true,
+        method: 'POST',
+        body: {
+          hello: 'world',
+        },
+      }).then(function (actualJson) {
+        expect(actualJson).to.deep.equal(this.alternateResponse);
+      }.bind(this));
     });
   });
 });

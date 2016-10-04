@@ -15,6 +15,13 @@ function BaseStubber(app, opts) {
   if (!fs.existsSync(this.directory)) fs.mkdirSync(this.directory);
   this.liveSite = opts.liveSite;
   this._requestsMade = {};
+
+  try {
+    this.requestStubs = JSON.parse(fs.readFileSync(this.requestsFile));
+  } catch (err) {
+    if (err.code === 'ENOENT') this.requestStubs = [];
+    else throw err;
+  }
 }
 
 Object.assign(BaseStubber.prototype, {
@@ -27,14 +34,7 @@ Object.assign(BaseStubber.prototype, {
 
   // Returns the parsed requests json file.
   getRequestStubs: function() {
-    return readFile(this.requestsFile)
-      .catch(function (err) {
-        if (err.code === 'ENOENT') return '[]';
-        throw err;
-      })
-      .then(function (bodyString) {
-        return JSON.parse(bodyString);
-      });
+    return Promise.resolve(this.requestStubs);
   },
 
   // Returns a dict of all the stubs which have been matched since initialisation.
@@ -128,11 +128,10 @@ Object.assign(BaseStubber.prototype, {
 
   // Appends stub to requests json file and saves.
   saveStub: function(stub) {
-    return this.getRequestStubs()
-      .then(function (stubs) {
-        stubs.push(stub);
-        return writeFile(this.requestsFile, JSON.stringify(stubs, null, 2));
-      }.bind(this));
+    this.requestStubs.push(stub);
+    return writeFile(this.requestsFile, JSON.stringify(
+      this.requestStubs, null, 2
+    ));
   },
 
   // Middleware which creates the request stub, saves the response stub, and
