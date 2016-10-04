@@ -12,7 +12,7 @@ const writeFile = Promise.promisify(fs.writeFile);
 const readFile = Promise.promisify(fs.readFile);
 
 function BaseStubber(app, opts) {
-  if (!fs.existsSync(this.directory)) fs.mkdirSync(this.directory);
+  if (!fs.existsSync(this.responsesDir)) fs.mkdirSync(this.responsesDir);
   this.liveSite = opts.liveSite;
 
   try {
@@ -29,7 +29,7 @@ function BaseStubber(app, opts) {
 }
 
 Object.assign(BaseStubber.prototype, {
-  directory: null,
+  responsesDir: null,
   requestsFile: null,
 
   log: function(message) {
@@ -51,12 +51,16 @@ Object.assign(BaseStubber.prototype, {
 
   // Finds a matching stub, if any.
   lookupStub: function(req) {
-    this.log(req.params.path + ', ' + JSON.stringify(req.query));
+    this.log(
+      req.params.path
+      + ', ' + JSON.stringify(req.query)
+      + ', ' + JSON.stringify(req.body || '')
+    );
 
     for (var i = 0; i < this.requestStubs.length; i++) {
       if (this.matches(req, this.requestStubs[i])) {
         var filePath = path.resolve(
-          this.directory, this.requestStubs[i].name + '.json'
+          this.responsesDir, this.requestStubs[i].name + '.json'
         );
         return {name: this.requestStubs[i].name, filePath: filePath};
       }
@@ -80,8 +84,14 @@ Object.assign(BaseStubber.prototype, {
         throw new Error('Request did not match any item stub.');
       }
     } catch (err) {
-      this.log(`  Error: ${err.message}`);
-      return res.status(500).end(err.message);
+      var errorMessage = [
+        '  Error: ' + err.message,
+        '  Request Path: ' + req.params.path,
+        '  Request QueryDict: ' + JSON.stringify(req.query),
+        '  Request Body: ' + JSON.stringify(req.body || ''),
+      ].join('\n');
+      this.log(errorMessage);
+      return res.status(500).end(errorMessage);
     }
   },
 
@@ -123,8 +133,14 @@ Object.assign(BaseStubber.prototype, {
   // returns the response.
   saveAndReturnStub: function(req, res) {
     function handleError(err) {
-      this.log(`  Error: ${err.message}`);
-      return res.status(500).end('Error: ' + err.message);
+      var errorMessage = [
+        '  Error: ' + err.message,
+        '  Request Path: ' + req.params.path,
+        '  Request QueryDict: ' + JSON.stringify(req.query),
+        '  Request Body: ' + JSON.stringify(req.body || ''),
+      ].join('\n');
+      this.log(errorMessage);
+      return res.status(500).end(errorMessage);
     }
 
     var that = this;
@@ -144,7 +160,7 @@ Object.assign(BaseStubber.prototype, {
     return request(data)
     .then(function (body) {
       return Promise.all([
-        writeFile(path.resolve(that.directory, name + '.json'), body),
+        writeFile(path.resolve(that.responsesDir, name + '.json'), body),
         that.saveStub(that.createStub(req, name))
       ])
       .then(function () {

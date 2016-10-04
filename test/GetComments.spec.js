@@ -85,7 +85,7 @@ function setUpApp(opts) {
   }.bind(this));
 }
 
-describe('GetComments in stub-only mode', function () {
+describe('GetComments in existing-stubs mode', function () {
   beforeEach(function () {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
     fs.writeFileSync(
@@ -139,7 +139,7 @@ describe('GetComments in stub-only mode', function () {
   });
 });
 
-describe('GetComments in Live mode', function () {
+describe('GetComments in create-stubs mode', function () {
   describe('without existing stubs', function () {
     beforeEach(function () {
       return setUpApp.call(this, {liveSite: liveUri});
