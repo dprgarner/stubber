@@ -127,13 +127,11 @@ describe('GetComments in stub-only mode', function () {
       uri: appUri + '/comments?postId=1',
       json: true,
     }).then(function () {
-      return this.getComments.getRequestsMade();
-    }.bind(this)).then(function (requestsMade) {
-      expect(requestsMade).to.deep.equal({
+      expect(this.getComments.requestsMade).to.deep.equal({
         'comments_postId-1': true,
         'comments_postId-2': false,
       });
-    });
+    }.bind(this));
   });
 });
 

@@ -22,9 +22,9 @@ function BaseStubber(app, opts) {
     else throw err;
   }
 
-  this._requestsMade = {};
+  this.requestsMade = {};
   _.each(this.requestStubs, function (val) {
-    this._requestsMade[val.name] = false;
+    this.requestsMade[val.name] = false;
   }.bind(this));
 }
 
@@ -34,16 +34,6 @@ Object.assign(BaseStubber.prototype, {
 
   log: function(message) {
     console.log(message);
-  },
-
-  // Returns the parsed requests json file.
-  getRequestStubs: function() {
-    return Promise.resolve(this.requestStubs);
-  },
-
-  // Returns a dict of all the stubs which have been matched since initialisation.
-  getRequestsMade: function () {
-    return Promise.resolve(this._requestsMade);
   },
 
   // Boolean function for determining whether a request object and a saved
@@ -63,38 +53,36 @@ Object.assign(BaseStubber.prototype, {
   lookupStub: function(req) {
     this.log(req.params.path + ', ' + JSON.stringify(req.query));
 
-    return this.getRequestStubs()
-      .then(function (stubs) {
-        for (var i = 0; i < stubs.length; i++) {
-          if (this.matches(req, stubs[i])) {
-            var filePath = path.resolve(this.directory, stubs[i].name + '.json');
-            return {name: stubs[i].name, filePath: filePath};
-          }
-        }
-      }.bind(this));
+    for (var i = 0; i < this.requestStubs.length; i++) {
+      if (this.matches(req, this.requestStubs[i])) {
+        var filePath = path.resolve(
+          this.directory, this.requestStubs[i].name + '.json'
+        );
+        return {name: this.requestStubs[i].name, filePath: filePath};
+      }
+    }
   },
 
   // Middleware which attempts to match a stub.
   matchStub: function(req, res, next) {
-    this.lookupStub(req)
-      .then(function (stub) {
-        if (stub) {
-          this.log(`  Matched stub "${stub.name}"`);
-          this._requestsMade[stub.name] = true;
-          return readFile(stub.filePath)
-            .then(function (body) {
-              return res.end(body);
-            });
-        } else if (this.liveSite) {
-          return next();
-        } else {
-          throw new Error('Request did not match any item stub.');
-        }
-      }.bind(this))
-      .catch(function (err) {
-        this.log(`  Error: ${err.message}`);
-        return res.status(500).end(err.message);
-      }.bind(this));
+    var stub = this.lookupStub(req);
+    try {
+      if (stub) {
+        this.log(`  Matched stub "${stub.name}"`);
+        this.requestsMade[stub.name] = true;
+        return readFile(stub.filePath)
+          .then(function (body) {
+            return res.end(body);
+          });
+      } else if (this.liveSite) {
+        return next();
+      } else {
+        throw new Error('Request did not match any item stub.');
+      }
+    } catch (err) {
+      this.log(`  Error: ${err.message}`);
+      return res.status(500).end(err.message);
+    }
   },
 
   // Generates a name for the stub from the request object.

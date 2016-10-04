@@ -33,17 +33,13 @@ var server = app.listen(PORT, function (err) {
 // Not yet tested...
 process.on('SIGINT', function () {
   console.log('Exit signal caught');
-  Promise.all(_.map(stubbers, function (stubber) {
-    return stubber.getRequestsMade()
-      .then(function(requestsMade) {
-        console.log('----');
-        console.log(`Requests made of ${stubber.name}:`);
-        console.log(JSON.stringify(requestsMade, null, 2));
-        console.log('----');
-      });
-  })).then(function () {
-    server.close(function () {
-      process.exit(0);
-    });
+  _.each(stubbers, function (stubber) {
+    console.log('----');
+    console.log(`Requests made of ${stubber.name}:`);
+    console.log(JSON.stringify(stubber.requestsMade, null, 2));
+    console.log('----');
+  });
+  server.close(function () {
+    process.exit(0);
   });
 });
