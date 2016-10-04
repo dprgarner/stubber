@@ -72,13 +72,13 @@ function setUpApp(opts) {
   this.postComments.log = function () {};
 
   return listen(app, APP_PORT)
-    .then(function (server) {
-      this.appServer = server;
-      return setUpLiveServer()
-    }.bind(this))
-    .then(function(server) {
-      this.liveServer = server;
-    }.bind(this));
+  .then(function (server) {
+    this.appServer = server;
+    return setUpLiveServer()
+  }.bind(this))
+  .then(function(server) {
+    this.liveServer = server;
+  }.bind(this));
 }
 
 describe('PostComments in stub-only mode', function () {
@@ -105,7 +105,8 @@ describe('PostComments in stub-only mode', function () {
       body: {
         hello: 'world',
       },
-    }).then(function (actualJson) {
+    })
+    .then(function (actualJson) {
       expect(responseJson).to.deep.equal(actualJson);
     });
   });
@@ -118,9 +119,11 @@ describe('PostComments in stub-only mode', function () {
       body: {
         hello: 'not the world',
       },
-    }).then(function () {
+    })
+    .then(function () {
       throw new Error('Expected an error response');
-    }).catch(function (err) {
+    })
+    .catch(function (err) {
       if (!err.statusCode) throw err;
       expect(err.statusCode).to.equal(500);
     });
@@ -145,12 +148,13 @@ describe('PostComments in Live mode', function () {
         body: {
           hello: 'world',
         },
-      }).then(function (responseJson) {
+      })
+      .then(function (responseJson) {
         return readFile(path.resolve(dir, 'comments_hello-world.json'))
-          .then(function(fileString) {
-            var fileBody = JSON.parse(fileString);
-            expect(fileBody).to.deep.equal(responseJson);
-          });
+        .then(function(fileString) {
+          var fileBody = JSON.parse(fileString);
+          expect(fileBody).to.deep.equal(responseJson);
+        });
       });
     });
   });
@@ -182,7 +186,8 @@ describe('PostComments in Live mode', function () {
         body: {
           hello: 'world',
         },
-      }).then(function (actualJson) {
+      })
+      .then(function (actualJson) {
         expect(actualJson).to.deep.equal(this.alternateResponse);
       }.bind(this));
     });

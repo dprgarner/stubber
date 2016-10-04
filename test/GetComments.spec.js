@@ -76,13 +76,13 @@ function setUpApp(opts) {
   this.getComments.log = function () {};
 
   return listen(app, APP_PORT)
-    .then(function (server) {
-      this.appServer = server;
-      return setUpLiveServer()
-    }.bind(this))
-    .then(function(server) {
-      this.liveServer = server;
-    }.bind(this));
+  .then(function (server) {
+    this.appServer = server;
+    return setUpLiveServer()
+  }.bind(this))
+  .then(function(server) {
+    this.liveServer = server;
+  }.bind(this));
 }
 
 describe('GetComments in stub-only mode', function () {
@@ -105,7 +105,8 @@ describe('GetComments in stub-only mode', function () {
     return request({
       uri: appUri + '/comments?postId=1',
       json: true,
-    }).then(function (actualJson) {
+    })
+    .then(function (actualJson) {
       expect(responseJson).to.deep.equal(actualJson);
     });
   });
@@ -114,9 +115,11 @@ describe('GetComments in stub-only mode', function () {
     return request({
       uri: appUri + '/comments?postId=3',
       json: true,
-    }).then(function () {
+    })
+    .then(function () {
       throw new Error('Expected an error response');
-    }).catch(function (err) {
+    })
+    .catch(function (err) {
       if (!err.statusCode) throw err;
       expect(err.statusCode).to.equal(500);
     });
@@ -126,7 +129,8 @@ describe('GetComments in stub-only mode', function () {
     return request({
       uri: appUri + '/comments?postId=1',
       json: true,
-    }).then(function () {
+    })
+    .then(function () {
       expect(this.getComments.requestsMade).to.deep.equal({
         'comments_postId-1': true,
         'comments_postId-2': false,
@@ -149,12 +153,13 @@ describe('GetComments in Live mode', function () {
       return request({
         uri: appUri + '/comments?postId=1',
         json: true,
-      }).then(function (responseJson) {
+      })
+      .then(function (responseJson) {
         return readFile(path.resolve(dir, 'comments_postId-1.json'))
-          .then(function(fileString) {
-            var fileBody = JSON.parse(fileString);
-            expect(fileBody).to.deep.equal(responseJson);
-          });
+        .then(function(fileString) {
+          var fileBody = JSON.parse(fileString);
+          expect(fileBody).to.deep.equal(responseJson);
+        });
       });
     });
   })
@@ -182,7 +187,8 @@ describe('GetComments in Live mode', function () {
       return request({
         uri: appUri + '/comments?postId=1',
         json: true,
-      }).then(function (actualJson) {
+      })
+      .then(function (actualJson) {
         expect(actualJson).to.deep.equal(this.alternateResponse);
       }.bind(this));
     });

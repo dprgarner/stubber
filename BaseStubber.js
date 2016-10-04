@@ -65,15 +65,15 @@ Object.assign(BaseStubber.prototype, {
 
   // Middleware which attempts to match a stub.
   matchStub: function(req, res, next) {
-    var stub = this.lookupStub(req);
     try {
+      var stub = this.lookupStub(req);
       if (stub) {
         this.log(`  Matched stub "${stub.name}"`);
         this.requestsMade[stub.name] = true;
         return readFile(stub.filePath)
-          .then(function (body) {
-            return res.end(body);
-          });
+        .then(function (body) {
+          return res.end(body);
+        });
       } else if (this.liveSite) {
         return next();
       } else {
@@ -122,29 +122,37 @@ Object.assign(BaseStubber.prototype, {
   // Middleware which creates the request stub, saves the response stub, and
   // returns the response.
   saveAndReturnStub: function(req, res) {
+    function handleError(err) {
+      this.log(`  Error: ${err.message}`);
+      return res.status(500).end('Error: ' + err.message);
+    }
+
     var that = this;
-    this.log(`  Did not match any stub - requesting ${req.url}`);
-    var name = this.getStubName(req);
+    try {
+      this.log(`  Did not match any stub - requesting ${req.url}`);
+      var name = this.getStubName(req);
+      var data = {
+        method: req.method,
+        uri: this.liveSite + req.url,
+        query: req.query,
+      };
+      if (req.method === 'POST') data.body = JSON.stringify(req.body);
+    } catch (err) {
+      return handleError(err);
+    }
 
-    var data = {
-      method: req.method,
-      uri: this.liveSite + req.url,
-      query: req.query,
-    };
-    if (req.method === 'POST') data.body = JSON.stringify(req.body);
-
-    request(data).then(function (body) {
+    return request(data)
+    .then(function (body) {
       return Promise.all([
         writeFile(path.resolve(that.directory, name + '.json'), body),
         that.saveStub(that.createStub(req, name))
-      ]).then(function () {
+      ])
+      .then(function () {
         that.log(`  Saved stub '${name}'`);
-        res.type('json').end(body);
+        return res.type('json').end(body);
       });
-    }).catch(function (err) {
-      that.log(`  Error: ${err.message}`);
-      res.status(500).end('Error: ' + err.message);
-    });
+    })
+    .catch(handleError.bind(this));
   },
 });
 
