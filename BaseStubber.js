@@ -143,7 +143,6 @@ Object.assign(BaseStubber.prototype, {
       return res.status(500).end(errorMessage);
     }
 
-    var that = this;
     try {
       this.log(`  Did not match any stub - requesting ${req.url}`);
       var name = this.getStubName(req);
@@ -160,14 +159,14 @@ Object.assign(BaseStubber.prototype, {
     return request(data)
     .then(function (body) {
       return Promise.all([
-        writeFile(path.resolve(that.responsesDir, name + '.json'), body),
-        that.saveStub(that.createStub(req, name))
+        writeFile(path.resolve(this.responsesDir, name + '.json'), body),
+        this.saveStub(this.createStub(req, name))
       ])
       .then(function () {
-        that.log(`  Saved stub '${name}'`);
+        this.log(`  Saved stub '${name}'`);
         return res.type('json').end(body);
-      });
-    })
+      }.bind(this));
+    }.bind(this))
     .catch(handleError.bind(this));
   },
 });
