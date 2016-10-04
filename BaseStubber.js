@@ -14,7 +14,6 @@ const readFile = Promise.promisify(fs.readFile);
 function BaseStubber(app, opts) {
   if (!fs.existsSync(this.directory)) fs.mkdirSync(this.directory);
   this.liveSite = opts.liveSite;
-  this._requestsMade = {};
 
   try {
     this.requestStubs = JSON.parse(fs.readFileSync(this.requestsFile));
@@ -22,6 +21,11 @@ function BaseStubber(app, opts) {
     if (err.code === 'ENOENT') this.requestStubs = [];
     else throw err;
   }
+
+  this._requestsMade = {};
+  _.each(this.requestStubs, function (val) {
+    this._requestsMade[val.name] = false;
+  }.bind(this));
 }
 
 Object.assign(BaseStubber.prototype, {
@@ -39,14 +43,7 @@ Object.assign(BaseStubber.prototype, {
 
   // Returns a dict of all the stubs which have been matched since initialisation.
   getRequestsMade: function () {
-    var that = this;
-    return this.getRequestStubs()
-      .then(function (stubs) {
-        _.each(stubs, function (stub) {
-          if (!that._requestsMade[stub.name]) that._requestsMade[stub.name] = false;
-        });
-        return that._requestsMade;
-      });
+    return Promise.resolve(this._requestsMade);
   },
 
   // Boolean function for determining whether a request object and a saved
