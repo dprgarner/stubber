@@ -3,6 +3,7 @@ const path = require('path');
 
 const _ = require('lodash');
 const equal = require('deep-equal')
+const jsonParser = require('body-parser').json()
 const Promise = require('bluebird');
 const request = require('request-promise');
 
@@ -50,10 +51,18 @@ Object.assign(BaseStubber.prototype, {
     console.log(message);
   },
 
+  // The default BaseStubber will match all requests.
+  initialize: function (app) {
+    app.get('*', this.matchStub, this.saveAndReturnStub);
+    app.post('*', jsonParser, this.matchStub, this.saveAndReturnStub);
+    app.put('*', jsonParser, this.matchStub, this.saveAndReturnStub);
+    app.delete('*', this.matchStub, this.saveAndReturnStub);
+  },
+
   // Boolean function for determining whether a request object and a saved
   // stub match.
   matches: function(req, savedStub) {
-    var itemPath = req.params.path;
+    var itemPath = req.path;
     var query = req.query;
     var body = req.body;
     return (
@@ -66,7 +75,7 @@ Object.assign(BaseStubber.prototype, {
   // Finds a matching stub, if any.
   lookupStub: function(req) {
     this.log(
-      req.params.path
+      req.path
       + ', ' + JSON.stringify(req.query)
       + ', ' + JSON.stringify(req.body || '')
     );
@@ -100,7 +109,7 @@ Object.assign(BaseStubber.prototype, {
     } catch (err) {
       var errorMessage = [
         '  Error: ' + err.message,
-        '  Request Path: ' + req.params.path,
+        '  Request Path: ' + req.path,
         '  Request QueryDict: ' + JSON.stringify(req.query),
         '  Request Body: ' + JSON.stringify(req.body || ''),
       ].join('\n');
@@ -111,7 +120,7 @@ Object.assign(BaseStubber.prototype, {
 
   // Generates a name for the stub from the request object.
   getStubName: function(req) {
-    var nameComponents = [req.params.path];
+    var nameComponents = [req.path.replace(/\//g, '_').slice(1)];
     nameComponents = nameComponents.concat(_.map(req.query, function (val, key) {
       var valString = (_.isArray(val)) ? val.join('-') : val;
       return key +  '-' + valString;
@@ -128,7 +137,7 @@ Object.assign(BaseStubber.prototype, {
   createStub: function (req, name) {
     var stub = {
       name: name,
-      path: req.params.path,
+      path: req.path,
       query: req.query,
     };
     if (req.body) stub.body = req.body
@@ -149,7 +158,7 @@ Object.assign(BaseStubber.prototype, {
     function handleError(err) {
       var errorMessage = [
         '  Error: ' + err.message,
-        '  Request Path: ' + req.params.path,
+        '  Request Path: ' + req.path,
         '  Request QueryDict: ' + JSON.stringify(req.query),
         '  Request Body: ' + JSON.stringify(req.body || ''),
       ].join('\n');

@@ -20,7 +20,7 @@ const liveUri = 'http://localhost:' + LIVE_PORT;
 
 var postRequests = [{
   name: 'comments_hello-world',
-  path: 'comments',
+  path: '/comments',
   query: {},
   body: {
     hello: 'world',
