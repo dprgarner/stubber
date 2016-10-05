@@ -26,7 +26,21 @@ function BaseStubber(app, opts) {
   _.each(this.requestStubs, function (val) {
     this.requestsMade[val.name] = false;
   }.bind(this));
+
+  this.matchStub = this.matchStub.bind(this);
+  this.saveAndReturnStub = this.saveAndReturnStub.bind(this);
+
+  this.initialize(app, opts);
 }
+
+BaseStubber.extend = function (newPrototype) {
+  function SubClass() {
+    return BaseStubber.apply(this, arguments);
+  };
+  SubClass.prototype = _.create(BaseStubber.prototype, newPrototype);
+  SubClass.prototype.constructor = SubClass;
+  return SubClass;
+};
 
 Object.assign(BaseStubber.prototype, {
   responsesDir: null,
