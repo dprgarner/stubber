@@ -169,17 +169,17 @@ Object.assign(BaseStubber.prototype, {
     try {
       this.log(`  Did not match any stub - requesting ${req.url}`);
       var name = this.getStubName(req);
-      var data = {
+      var newRequestData = {
         method: req.method,
         uri: this.liveSite + req.url,
         query: req.query,
       };
-      if (req.method === 'POST') data.body = JSON.stringify(req.body);
+      if (req.body) newRequestData.body = JSON.stringify(req.body);
     } catch (err) {
       return handleError(err);
     }
 
-    return request(data)
+    return request(newRequestData)
     .then(function (body) {
       return Promise.all([
         writeFile(path.resolve(this.responsesDir, name + '.json'), body),
