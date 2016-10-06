@@ -1,3 +1,6 @@
+const path = require('path');
+
+const _ = require('lodash');
 const express = require('express');
 const program = require('commander');
 
@@ -16,6 +19,7 @@ if (program.site) opts.liveSite = program.site;
 var app = express();
 app.get('/favicon.ico', function (req, res) {});
 
+/*
 // These have been tested against https://jsonplaceholder.typicode.com
 const GetComments = require('./test/GetComments');
 const PostComments = require('./test/PostComments');
@@ -24,18 +28,30 @@ var stubbers = [
   new GetComments(app, opts),
   new PostComments(app, opts),
 ];
+*/
+
+const BaseStubber = require('./BaseStubber.js');
+
+var GeneralStubber = BaseStubber.extend({
+  responsesDir: path.resolve(__dirname, 'responses'),
+  matchersFile: path.resolve(__dirname, 'matchers.json'),
+});
+
+var stubbers = [
+  new GeneralStubber(app, opts),
+]
 
 var server = app.listen(PORT, function (err) {
   if (err) throw err;
-  console.log(`App listening on port ${PORT}`);
+  console.log('App listening on port ' + PORT);
 });
 
+/*
 // Not yet tested...
 process.on('SIGINT', function () {
-  console.log('Exit signal caught');
   _.each(stubbers, function (stubber) {
     console.log('----');
-    console.log(`Requests made of ${stubber.name}:`);
+    console.log('Requests made:');
     console.log(JSON.stringify(stubber.requestsMade, null, 2));
     console.log('----');
   });
@@ -43,3 +59,4 @@ process.on('SIGINT', function () {
     process.exit(0);
   });
 });
+*/
