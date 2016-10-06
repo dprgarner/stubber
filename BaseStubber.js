@@ -97,7 +97,8 @@ Object.assign(BaseStubber.prototype, {
 
   // Middleware which attempts to match a request to a stub.
   matchRequest: function(req, res, next) {
-    try {
+    return Promise.resolve()
+    .then(function () {
       var match = this.getMatcher(req);
       if (match) {
         this.log(`  Matched "${match.res.filename}"`);
@@ -107,17 +108,15 @@ Object.assign(BaseStubber.prototype, {
         .then(function (body) {
           return res.end(body);
         })
-        .catch(function (err) {
-          return this.handleError(req, res, err)
-        }.bind(this));
       } else if (this.liveSite) {
         return next();
       } else {
         throw new Error('Request was not matched to any stub.');
       }
-    } catch (err) {
-      return this.handleError(req, res, err);
-    }
+    }.bind(this))
+    .catch(function (err) {
+      return this.handleError(req, res, err)
+    }.bind(this));
   },
 
   // Generates a name for the matcher from the request object.
@@ -161,21 +160,19 @@ Object.assign(BaseStubber.prototype, {
   // Middleware which creates the matcher, saves the response stub, and
   // returns the response.
   saveAndReturnStub: function(req, res) {
-    try {
+    return Promise.resolve()
+    .then(function () {
       this.log(`  Request was not matched - requesting ${req.url}`);
-      var matcher = this.createMatcher(req);
       var newRequestData = {
         method: req.method,
         uri: this.liveSite + req.url,
         query: req.query,
       };
       if (req.body) newRequestData.body = JSON.stringify(req.body);
-    } catch (err) {
-      return this.handleError(req, res, err)
-    }
-
-    return request(newRequestData)
+      return request(newRequestData)
+    }.bind(this))
     .then(function (body) {
+      var matcher = this.createMatcher(req);
       return Promise.all([
         writeFile(path.resolve(this.responsesDir, matcher.res.filename), body),
         this.saveMatcher()
