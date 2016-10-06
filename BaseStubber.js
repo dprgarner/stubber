@@ -17,18 +17,18 @@ function BaseStubber(app, opts) {
   this.liveSite = opts.liveSite;
 
   try {
-    this.requestStubs = JSON.parse(fs.readFileSync(this.requestsFile));
+    this.matchers = JSON.parse(fs.readFileSync(this.matchersFile));
   } catch (err) {
-    if (err.code === 'ENOENT') this.requestStubs = [];
+    if (err.code === 'ENOENT') this.matchers = [];
     else throw err;
   }
 
   this.requestsMade = {};
-  _.each(this.requestStubs, function (val) {
+  _.each(this.matchers, function (val) {
     this.requestsMade[val.name] = false;
   }.bind(this));
 
-  this.matchStub = this.matchStub.bind(this);
+  this.matchRequest = this.matchRequest.bind(this);
   this.saveAndReturnStub = this.saveAndReturnStub.bind(this);
 
   this.initialize(app, opts);
@@ -45,7 +45,7 @@ BaseStubber.extend = function (newPrototype) {
 
 Object.assign(BaseStubber.prototype, {
   responsesDir: null,
-  requestsFile: null,
+  matchersFile: null,
 
   log: function(message) {
     console.log(message);
@@ -53,58 +53,58 @@ Object.assign(BaseStubber.prototype, {
 
   // The default BaseStubber will match all requests.
   initialize: function (app) {
-    app.get('*', this.matchStub, this.saveAndReturnStub);
-    app.post('*', jsonParser, this.matchStub, this.saveAndReturnStub);
-    app.put('*', jsonParser, this.matchStub, this.saveAndReturnStub);
-    app.delete('*', this.matchStub, this.saveAndReturnStub);
+    app.get('*', this.matchRequest, this.saveAndReturnStub);
+    app.post('*', jsonParser, this.matchRequest, this.saveAndReturnStub);
+    app.put('*', jsonParser, this.matchRequest, this.saveAndReturnStub);
+    app.delete('*', this.matchRequest, this.saveAndReturnStub);
   },
 
-  // Boolean function for determining whether a request object and a saved
-  // stub match.
-  matches: function(req, savedStub) {
+  // Boolean function for determining whether a request object matches a saved
+  // request matcher.
+  isMatch: function(req, matcher) {
     var itemPath = req.path;
     var query = req.query;
     var body = req.body;
     return (
-      itemPath === savedStub.path
-      && queryDictsMatch(query, savedStub.query)
-      && equal(body, savedStub.body)
+      itemPath === matcher.path
+      && queryDictsMatch(query, matcher.query)
+      && equal(body, matcher.body)
     );
   },
 
   // Finds a matching stub, if any.
-  lookupStub: function(req) {
+  getMatcher: function(req) {
     this.log(
       req.path
       + ', ' + JSON.stringify(req.query)
       + ', ' + JSON.stringify(req.body || '')
     );
 
-    for (var i = 0; i < this.requestStubs.length; i++) {
-      if (this.matches(req, this.requestStubs[i])) {
+    for (var i = 0; i < this.matchers.length; i++) {
+      if (this.isMatch(req, this.matchers[i])) {
         var filePath = path.resolve(
-          this.responsesDir, this.requestStubs[i].name + '.json'
+          this.responsesDir, this.matchers[i].name + '.json'
         );
-        return {name: this.requestStubs[i].name, filePath: filePath};
+        return {name: this.matchers[i].name, filePath: filePath};
       }
     }
   },
 
-  // Middleware which attempts to match a stub.
-  matchStub: function(req, res, next) {
+  // Middleware which attempts to match a request to a stub.
+  matchRequest: function(req, res, next) {
     try {
-      var stub = this.lookupStub(req);
-      if (stub) {
-        this.log(`  Matched stub "${stub.name}"`);
-        this.requestsMade[stub.name] = true;
-        return readFile(stub.filePath)
+      var match = this.getMatcher(req);
+      if (match) {
+        this.log(`  Matched "${match.name}"`);
+        this.requestsMade[match.name] = true;
+        return readFile(match.filePath)
         .then(function (body) {
           return res.end(body);
         });
       } else if (this.liveSite) {
         return next();
       } else {
-        throw new Error('Request did not match any item stub.');
+        throw new Error('Request was not matched to any stub.');
       }
     } catch (err) {
       var errorMessage = [
@@ -118,8 +118,8 @@ Object.assign(BaseStubber.prototype, {
     }
   },
 
-  // Generates a name for the stub from the request object.
-  getStubName: function(req) {
+  // Generates a name for the matcher from the request object.
+  getMatcherName: function(req) {
     var nameComponents = [req.path.replace(/\//g, '_').slice(1)];
     nameComponents = nameComponents.concat(_.map(req.query, function (val, key) {
       var valString = (_.isArray(val)) ? val.join('-') : val;
@@ -132,27 +132,27 @@ Object.assign(BaseStubber.prototype, {
     return nameComponents.join('_');
   },
 
-  // A function for determining how the saved stub is generated from the
+  // A function for determining how the saved matcher is generated from the
   // request.
-  createStub: function (req, name) {
-    var stub = {
+  createMatcher: function (req, name) {
+    var matcher = {
       name: name,
       path: req.path,
       query: req.query,
     };
-    if (req.body) stub.body = req.body
-    return stub;
+    if (req.body) matcher.body = req.body
+    return matcher;
   },
 
-  // Appends stub to requests json file and saves.
-  saveStub: function(stub) {
-    this.requestStubs.push(stub);
-    return writeFile(this.requestsFile, JSON.stringify(
-      this.requestStubs, null, 2
+  // Appends the matcher to the json file and saves.
+  saveMatcher: function(matcher) {
+    this.matchers.push(matcher);
+    return writeFile(this.matchersFile, JSON.stringify(
+      this.matchers, null, 2
     ));
   },
 
-  // Middleware which creates the request stub, saves the response stub, and
+  // Middleware which creates the matcher, saves the response stub, and
   // returns the response.
   saveAndReturnStub: function(req, res) {
     function handleError(err) {
@@ -167,8 +167,8 @@ Object.assign(BaseStubber.prototype, {
     }
 
     try {
-      this.log(`  Did not match any stub - requesting ${req.url}`);
-      var name = this.getStubName(req);
+      this.log(`  Request was not matched - requesting ${req.url}`);
+      var name = this.getMatcherName(req);
       var newRequestData = {
         method: req.method,
         uri: this.liveSite + req.url,
@@ -183,10 +183,10 @@ Object.assign(BaseStubber.prototype, {
     .then(function (body) {
       return Promise.all([
         writeFile(path.resolve(this.responsesDir, name + '.json'), body),
-        this.saveStub(this.createStub(req, name))
+        this.saveMatcher(this.createMatcher(req, name))
       ])
       .then(function () {
-        this.log(`  Saved stub '${name}'`);
+        this.log(`  Saved matcher '${name}'`);
         return res.type('json').end(body);
       }.bind(this));
     }.bind(this))

@@ -2,9 +2,7 @@ const path = require('path');
 
 const BaseStubber = require('../BaseStubber');
 
-const GetComments = BaseStubber.extend({
+module.exports = BaseStubber.extend({
   responsesDir: path.resolve(__dirname, 'comments'),
-  requestsFile: path.resolve(__dirname, 'comments', 'requests.json'),
+  matchersFile: path.resolve(__dirname, 'comments', 'requests.json'),
 });
-
-module.exports = GetComments;
