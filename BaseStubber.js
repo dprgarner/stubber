@@ -25,7 +25,7 @@ function BaseStubber(app, opts) {
 
   this.requestsMade = {};
   _.each(this.matchers, function (val) {
-    this.requestsMade[val.name] = false;
+    this.requestsMade[val.res.filename] = false;
   }.bind(this));
 
   this.matchRequest = this.matchRequest.bind(this);
@@ -51,6 +51,17 @@ Object.assign(BaseStubber.prototype, {
     console.log(message);
   },
 
+  handleError: function(req, res, err) {
+    var errorMessage = [
+      '  Error: ' + err.message,
+      '  Request Path: ' + req.path,
+      '  Request QueryDict: ' + JSON.stringify(req.query || {}),
+      '  Request Body: ' + JSON.stringify(req.body || ''),
+    ].join('\n');
+    this.log(errorMessage);
+    return res.status(500).end(errorMessage);
+  },
+
   // The default BaseStubber will match all requests.
   initialize: function (app) {
     app.get('*', this.matchRequest, this.saveAndReturnStub);
@@ -59,8 +70,8 @@ Object.assign(BaseStubber.prototype, {
     app.delete('*', this.matchRequest, this.saveAndReturnStub);
   },
 
-  // Boolean function for determining whether a request object matches a saved
-  // request.
+  // Boolean-returning function for determining whether a request object
+  // matches a saved request.
   isMatch: function(req, matcherReq) {
     return (
       req.path === matcherReq.path
@@ -79,10 +90,7 @@ Object.assign(BaseStubber.prototype, {
 
     for (var i = 0; i < this.matchers.length; i++) {
       if (this.isMatch(req, this.matchers[i].req)) {
-        var filePath = path.resolve(
-          this.responsesDir, this.matchers[i].name + '.json'
-        );
-        return {name: this.matchers[i].name, filePath: filePath};
+        return this.matchers[i];
       }
     }
   },
@@ -92,26 +100,23 @@ Object.assign(BaseStubber.prototype, {
     try {
       var match = this.getMatcher(req);
       if (match) {
-        this.log(`  Matched "${match.name}"`);
-        this.requestsMade[match.name] = true;
-        return readFile(match.filePath)
+        this.log(`  Matched "${match.res.filename}"`);
+        this.requestsMade[match.res.filename] = true;
+        var filePath = path.resolve(this.responsesDir, match.res.filename);
+        return readFile(filePath)
         .then(function (body) {
           return res.end(body);
-        });
+        })
+        .catch(function (err) {
+          return this.handleError(req, res, err)
+        }.bind(this));
       } else if (this.liveSite) {
         return next();
       } else {
         throw new Error('Request was not matched to any stub.');
       }
     } catch (err) {
-      var errorMessage = [
-        '  Error: ' + err.message,
-        '  Request Path: ' + req.path,
-        '  Request QueryDict: ' + JSON.stringify(req.query),
-        '  Request Body: ' + JSON.stringify(req.body || ''),
-      ].join('\n');
-      this.log(errorMessage);
-      return res.status(500).end(errorMessage);
+      return this.handleError(req, res, err);
     }
   },
 
@@ -131,12 +136,14 @@ Object.assign(BaseStubber.prototype, {
 
   // A function for determining how the saved matcher is generated from the
   // request.
-  createMatcher: function (req, name) {
+  createMatcher: function (req) {
     var matcher = {
-      name: name,
       req: {
         path: req.path,
         query: req.query,
+      },
+      res: {
+        filename: this.getMatcherName(req) + '.json',
       },
     };
     if (req.body) matcher.req.body = req.body
@@ -154,20 +161,9 @@ Object.assign(BaseStubber.prototype, {
   // Middleware which creates the matcher, saves the response stub, and
   // returns the response.
   saveAndReturnStub: function(req, res) {
-    function handleError(err) {
-      var errorMessage = [
-        '  Error: ' + err.message,
-        '  Request Path: ' + req.path,
-        '  Request QueryDict: ' + JSON.stringify(req.query),
-        '  Request Body: ' + JSON.stringify(req.body || ''),
-      ].join('\n');
-      this.log(errorMessage);
-      return res.status(500).end(errorMessage);
-    }
-
     try {
       this.log(`  Request was not matched - requesting ${req.url}`);
-      var name = this.getMatcherName(req);
+      var matcher = this.createMatcher(req);
       var newRequestData = {
         method: req.method,
         uri: this.liveSite + req.url,
@@ -175,21 +171,23 @@ Object.assign(BaseStubber.prototype, {
       };
       if (req.body) newRequestData.body = JSON.stringify(req.body);
     } catch (err) {
-      return handleError(err);
+      return this.handleError(req, res, err)
     }
 
     return request(newRequestData)
     .then(function (body) {
       return Promise.all([
-        writeFile(path.resolve(this.responsesDir, name + '.json'), body),
-        this.saveMatcher(this.createMatcher(req, name))
+        writeFile(path.resolve(this.responsesDir, matcher.res.filename), body),
+        this.saveMatcher()
       ])
       .then(function () {
-        this.log(`  Saved matcher '${name}'`);
+        this.log(`  Saved matcher '${matcher.res.filename}'`);
         return res.type('json').end(body);
       }.bind(this));
     }.bind(this))
-    .catch(handleError.bind(this));
+    .catch(function (err) {
+      return this.handleError(req, res, err)
+    });
   },
 });
 

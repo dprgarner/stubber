@@ -19,13 +19,13 @@ const appUri = 'http://localhost:' + APP_PORT;
 const liveUri = 'http://localhost:' + LIVE_PORT;
 
 var postRequests = [{
-  name: 'comments_hello-world',
+  res: {
+    filename: 'comments_hello-world.json',
+  },
   req: {
     path: '/comments',
     query: {},
-    body: {
-      hello: 'world',
-    }, 
+    body: {hello: 'world'},
   },
 }];
 
@@ -82,7 +82,7 @@ function setUpApp(opts) {
   }.bind(this));
 }
 
-describe('PostComments in existing-stubs mode', function () {
+describe('PostComments in existing-matchers mode', function () {
   beforeEach(function () {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
     fs.writeFileSync(
@@ -103,23 +103,45 @@ describe('PostComments in existing-stubs mode', function () {
       uri: appUri + '/comments',
       json: true,
       method: 'POST',
-      body: {
-        hello: 'world',
-      },
+      body: {hello: 'world'},
     })
     .then(function (actualJson) {
       expect(responseJson).to.deep.equal(actualJson);
     });
   });
 
-  it('errors when stub does not exist', function () {
+  it('errors when matcher does not exist', function () {
     return request({
       uri: appUri + '/comments',
       json: true,
       method: 'POST',
-      body: {
-        hello: 'not the world',
+      body: {hello: 'not the world'},
+    })
+    .then(function () {
+      throw new Error('Expected an error response');
+    })
+    .catch(function (err) {
+      if (!err.statusCode) throw err;
+      expect(err.statusCode).to.equal(500);
+    });
+  });
+
+  it('errors when matcher exists but stub file does not exist', function () {
+    this.postComments.matchers.push({
+      res: {
+        filename: 'missing-file.json',
       },
+      req: {
+        path: '/comments',
+        query: {},
+        body: {hello: 'guys'},
+      },
+    });
+    return request({
+      uri: appUri + '/comments',
+      json: true,
+      method: 'POST',
+      body: {hello: 'guys'},
     })
     .then(function () {
       throw new Error('Expected an error response');
@@ -131,8 +153,8 @@ describe('PostComments in existing-stubs mode', function () {
   });
 });
 
-describe('PostComments in create-stubs mode', function () {
-  describe('without existing stubs', function () {
+describe('PostComments in create-matchers mode', function () {
+  describe('without existing matchers', function () {
     beforeEach(function () {
       return setUpApp.call(this, {liveSite: liveUri});
     });
@@ -146,9 +168,7 @@ describe('PostComments in create-stubs mode', function () {
         uri: appUri + '/comments',
         json: true,
         method: 'POST',
-        body: {
-          hello: 'world',
-        },
+        body: {hello: 'world'},
       })
       .then(function (responseJson) {
         return readFile(path.resolve(dir, 'comments_hello-world.json'))
@@ -160,7 +180,7 @@ describe('PostComments in create-stubs mode', function () {
     });
   });
 
-  describe('with existing stubs', function () {
+  describe('with existing matchers', function () {
     beforeEach(function () {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir);
       this.alternateResponse = {different: 'response'};
@@ -184,9 +204,7 @@ describe('PostComments in create-stubs mode', function () {
         uri: appUri + '/comments',
         json: true,
         method: 'POST',
-        body: {
-          hello: 'world',
-        },
+        body: {hello: 'world'},
       })
       .then(function (actualJson) {
         expect(actualJson).to.deep.equal(this.alternateResponse);

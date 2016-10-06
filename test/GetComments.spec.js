@@ -19,20 +19,20 @@ const appUri = 'http://localhost:' + APP_PORT;
 const liveUri = 'http://localhost:' + LIVE_PORT;
 
 var getRequests = [{
-  name: 'comments_postId-1',
   req: {
     path: '/comments',
-    query: {
-      postId: '1'
-    },
+    query: {postId: '1'},
+  },
+  res: {
+    filename: 'comments_postId-1.json',
   },
 }, {
-  name: 'comments_postId-2',
   req: {
     path: '/comments',
-    query: {
-      postId: '2'
-    },
+    query: {postId: '2'},
+  },
+  res: {
+    filename: 'comments_postId-2.json',
   },
 }];
 
@@ -89,7 +89,7 @@ function setUpApp(opts) {
   }.bind(this));
 }
 
-describe('GetComments in existing-stubs mode', function () {
+describe('GetComments in existing-matchers mode', function () {
   beforeEach(function () {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
     fs.writeFileSync(
@@ -115,7 +115,7 @@ describe('GetComments in existing-stubs mode', function () {
     });
   });
 
-  it('errors when stub does not exist', function () {
+  it('errors when matcher does not exist', function () {
     return request({
       uri: appUri + '/comments?postId=3',
       json: true,
@@ -136,15 +136,15 @@ describe('GetComments in existing-stubs mode', function () {
     })
     .then(function () {
       expect(this.getComments.requestsMade).to.deep.equal({
-        'comments_postId-1': true,
-        'comments_postId-2': false,
+        'comments_postId-1.json': true,
+        'comments_postId-2.json': false,
       });
     }.bind(this));
   });
 });
 
-describe('GetComments in create-stubs mode', function () {
-  describe('without existing stubs', function () {
+describe('GetComments in create-matchers mode', function () {
+  describe('without existing matchers', function () {
     beforeEach(function () {
       return setUpApp.call(this, {liveSite: liveUri});
     });
@@ -168,7 +168,7 @@ describe('GetComments in create-stubs mode', function () {
     });
   })
 
-  describe('with existing stubs', function () {
+  describe('with existing matchers', function () {
     beforeEach(function () {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir);
       this.alternateResponse = {different: 'response'};
