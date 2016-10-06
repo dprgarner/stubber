@@ -20,15 +20,19 @@ const liveUri = 'http://localhost:' + LIVE_PORT;
 
 var getRequests = [{
   name: 'comments_postId-1',
-  path: '/comments',
-  query: {
-    postId: '1'
+  req: {
+    path: '/comments',
+    query: {
+      postId: '1'
+    },
   },
 }, {
   name: 'comments_postId-2',
-  path: '/comments',
-  query: {
-    postId: '2'
+  req: {
+    path: '/comments',
+    query: {
+      postId: '2'
+    },
   },
 }];
 

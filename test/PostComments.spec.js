@@ -20,12 +20,13 @@ const liveUri = 'http://localhost:' + LIVE_PORT;
 
 var postRequests = [{
   name: 'comments_hello-world',
-  path: '/comments',
-  query: {},
-  body: {
-    hello: 'world',
+  req: {
+    path: '/comments',
+    query: {},
+    body: {
+      hello: 'world',
+    }, 
   },
-  file: 'comments_hello-world'
 }];
 
 var responseJson = [{

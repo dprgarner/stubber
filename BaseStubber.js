@@ -60,15 +60,12 @@ Object.assign(BaseStubber.prototype, {
   },
 
   // Boolean function for determining whether a request object matches a saved
-  // request matcher.
-  isMatch: function(req, matcher) {
-    var itemPath = req.path;
-    var query = req.query;
-    var body = req.body;
+  // request.
+  isMatch: function(req, matcherReq) {
     return (
-      itemPath === matcher.path
-      && queryDictsMatch(query, matcher.query)
-      && equal(body, matcher.body)
+      req.path === matcherReq.path
+      && queryDictsMatch(req.query, matcherReq.query)
+      && equal(req.body, matcherReq.body)
     );
   },
 
@@ -81,7 +78,7 @@ Object.assign(BaseStubber.prototype, {
     );
 
     for (var i = 0; i < this.matchers.length; i++) {
-      if (this.isMatch(req, this.matchers[i])) {
+      if (this.isMatch(req, this.matchers[i].req)) {
         var filePath = path.resolve(
           this.responsesDir, this.matchers[i].name + '.json'
         );
@@ -137,10 +134,12 @@ Object.assign(BaseStubber.prototype, {
   createMatcher: function (req, name) {
     var matcher = {
       name: name,
-      path: req.path,
-      query: req.query,
+      req: {
+        path: req.path,
+        query: req.query,
+      },
     };
-    if (req.body) matcher.body = req.body
+    if (req.body) matcher.req.body = req.body
     return matcher;
   },
 
