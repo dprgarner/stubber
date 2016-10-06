@@ -81,6 +81,7 @@ function setUpApp(opts) {
   }.bind(this))
   .then(function(server) {
     this.liveServer = server;
+    this.liveServer.setTimeout(500);
   }.bind(this));
 }
 

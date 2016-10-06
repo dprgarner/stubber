@@ -89,6 +89,7 @@ function setUpApp(opts) {
   }.bind(this))
   .then(function(server) {
     this.liveServer = server;
+    this.liveServer.setTimeout(500);
   }.bind(this));
 }
 
@@ -173,7 +174,7 @@ describe('GetComments in create-matchers mode', function () {
       return tearDownApp.call(this);
     });
 
-    it.only('saves and returns unrecognised responses', function () {
+    it('saves and returns unrecognised responses', function () {
       return request({
         uri: appUri + '/comments?postId=1',
         json: true,
