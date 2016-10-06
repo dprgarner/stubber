@@ -178,7 +178,7 @@ Object.assign(BaseStubber.prototype, {
         writeFile(
           path.resolve(this.responsesDir, matcher.res.filename), liveResponse.body
         ),
-        this.saveMatcher()
+        this.saveMatcher(matcher)
       ])
       .then(function () {
         this.log(`  Saved matcher '${matcher.res.filename}'`);

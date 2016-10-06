@@ -178,6 +178,30 @@ describe('PostComments in create-matchers mode', function () {
         });
       });
     });
+
+    it('creates new matchers', function () {
+      var initialLength = this.postComments.matchers.length;
+      return request({
+        uri: appUri + '/comments',
+        json: true,
+        method: 'POST',
+        body: {hello: 'world'},
+      })
+      .then(function () {
+        var matchers = this.postComments.matchers;
+        expect(matchers).to.have.length(initialLength + 1);
+        expect(matchers[initialLength]).to.deep.equal({
+          res: {
+            filename: 'comments_hello-world.json',
+          },
+          req: {
+            path: '/comments',
+            query: {},
+            body: {hello: 'world'},
+          },
+        });
+      }.bind(this));
+    });
   });
 
   describe('with existing matchers', function () {
