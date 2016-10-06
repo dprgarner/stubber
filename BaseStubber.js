@@ -106,7 +106,7 @@ Object.assign(BaseStubber.prototype, {
         var filePath = path.resolve(this.responsesDir, match.res.filename);
         return readFile(filePath)
         .then(function (body) {
-          return res.end(body);
+          return res.status(match.res.statusCode).end(body);
         })
       } else if (this.liveSite) {
         return next();
@@ -135,7 +135,7 @@ Object.assign(BaseStubber.prototype, {
 
   // A function for determining how the saved matcher is generated from the
   // request.
-  createMatcher: function (req) {
+  createMatcher: function (req, liveResponse) {
     var matcher = {
       req: {
         path: req.path,
@@ -143,6 +143,7 @@ Object.assign(BaseStubber.prototype, {
       },
       res: {
         filename: this.getMatcherName(req) + '.json',
+        statusCode: liveResponse.statusCode,
       },
     };
     if (req.body) matcher.req.body = req.body
@@ -173,7 +174,7 @@ Object.assign(BaseStubber.prototype, {
       return request(newRequestData)
     }.bind(this))
     .then(function (liveResponse) {
-      var matcher = this.createMatcher(req);
+      var matcher = this.createMatcher(req, liveResponse);
       return Promise.all([
         writeFile(
           path.resolve(this.responsesDir, matcher.res.filename), liveResponse.body
@@ -182,7 +183,7 @@ Object.assign(BaseStubber.prototype, {
       ])
       .then(function () {
         this.log(`  Saved matcher '${matcher.res.filename}'`);
-        return res.end(liveResponse.body);
+        return res.status(liveResponse.statusCode).end(liveResponse.body);
       }.bind(this));
     }.bind(this))
     .catch(function (err) {

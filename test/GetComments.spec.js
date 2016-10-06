@@ -25,6 +25,7 @@ var getRequests = [{
   },
   res: {
     filename: 'comments_postId-1.json',
+    statusCode: 200,
   },
 }, {
   req: {
@@ -33,6 +34,7 @@ var getRequests = [{
   },
   res: {
     filename: 'comments_postId-2.json',
+    statusCode: 200,
   },
 }];
 

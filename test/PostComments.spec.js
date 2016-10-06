@@ -19,13 +19,14 @@ const appUri = 'http://localhost:' + APP_PORT;
 const liveUri = 'http://localhost:' + LIVE_PORT;
 
 var postRequests = [{
-  res: {
-    filename: 'comments_hello-world.json',
-  },
   req: {
     path: '/comments',
     query: {},
     body: {hello: 'world'},
+  },
+  res: {
+    filename: 'comments_hello-world.json',
+    statusCode: 201,
   },
 }];
 
@@ -50,7 +51,7 @@ function listen(app, port) {
 function setUpLiveServer() {
   var app = express();
   app.post('/comments', function (req, res) {
-    res.json(responseJson);
+    res.status(201).json(responseJson);
   });
   return listen(app, LIVE_PORT);
 }
@@ -98,15 +99,17 @@ describe('PostComments in existing-matchers mode', function () {
     return tearDownApp.call(this);
   });
 
-  it('returns previously-saved stubs', function () {
+  it('returns previously-saved stubs and status codes', function () {
     return request({
       uri: appUri + '/comments',
       json: true,
       method: 'POST',
       body: {hello: 'world'},
+      resolveWithFullResponse: true,
     })
-    .then(function (actualJson) {
-      expect(responseJson).to.deep.equal(actualJson);
+    .then(function (res) {
+      expect(res.body).to.deep.equal(responseJson);
+      expect(res.statusCode).to.equal(201);
     });
   });
 
@@ -128,13 +131,13 @@ describe('PostComments in existing-matchers mode', function () {
 
   it('errors when matcher exists but stub file does not exist', function () {
     this.postComments.matchers.push({
-      res: {
-        filename: 'missing-file.json',
-      },
       req: {
         path: '/comments',
         query: {},
         body: {hello: 'guys'},
+      },
+      res: {
+        filename: 'missing-file.json',
       },
     });
     return request({
@@ -169,12 +172,14 @@ describe('PostComments in create-matchers mode', function () {
         json: true,
         method: 'POST',
         body: {hello: 'world'},
+        resolveWithFullResponse: true,
       })
-      .then(function (responseJson) {
+      .then(function (res) {
         return readFile(path.resolve(dir, 'comments_hello-world.json'))
         .then(function(fileString) {
           var fileBody = JSON.parse(fileString);
-          expect(fileBody).to.deep.equal(responseJson);
+          expect(res.body).to.deep.equal(fileBody);
+          expect(res.statusCode).to.equal(201);
         });
       });
     });
@@ -191,13 +196,14 @@ describe('PostComments in create-matchers mode', function () {
         var matchers = this.postComments.matchers;
         expect(matchers).to.have.length(initialLength + 1);
         expect(matchers[initialLength]).to.deep.equal({
-          res: {
-            filename: 'comments_hello-world.json',
-          },
           req: {
             path: '/comments',
             query: {},
             body: {hello: 'world'},
+          },
+          res: {
+            filename: 'comments_hello-world.json',
+            statusCode: 201,
           },
         });
       }.bind(this));
