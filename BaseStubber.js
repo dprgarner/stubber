@@ -139,7 +139,7 @@ Object.assign(BaseStubber.prototype, {
   createMatcher: function (req, liveResponse) {
     var contentType = liveResponse.headers['content-type'];
     var extension = typeIs(contentType, 'json') ? '.json' : '';
-    var filename = this.getMatcherName(req) + extension;
+    var name = this.getMatcherName(req);
 
     var matcher = {
       req: {
@@ -147,7 +147,7 @@ Object.assign(BaseStubber.prototype, {
         query: req.query,
       },
       res: {
-        filename: filename,
+        filename: name + extension,
         statusCode: liveResponse.statusCode,
       },
     };
@@ -180,6 +180,10 @@ Object.assign(BaseStubber.prototype, {
     }.bind(this))
     .then(function (liveResponse) {
       var matcher = this.createMatcher(req, liveResponse);
+      // Sanity check: the new matcher must match the existing request.
+      if (!this.isMatch(req, matcher.req)) {
+        throw new Error('Created matcher must match the current request');
+      }
       return Promise.all([
         writeFile(
           path.resolve(this.responsesDir, matcher.res.filename), liveResponse.body

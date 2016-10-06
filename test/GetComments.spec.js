@@ -198,5 +198,22 @@ describe('GetComments in create-matchers mode', function () {
         expect(actualJson).to.deep.equal(this.alternateResponse);
       }.bind(this));
     });
+
+    it('errors if the new matcher does not match the request', function () {
+      this.getComments.createMatcher = function () {
+        return {req: {bad: 'matcher'}, res: {filename: 'comments_postId-1.json'}};
+      };
+      return request({
+        uri: appUri + '/comments?postId=3',
+        json: true,
+      })
+      .then(function () {
+        throw new Error('Expected an error response');
+      })
+      .catch(function (err) {
+        if (!err.statusCode) throw err;
+        expect(err.statusCode).to.equal(500);
+      });
+    });
   });
 });
