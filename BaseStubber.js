@@ -44,7 +44,7 @@ BaseStubber.extend = function (newPrototype) {
   return SubClass;
 };
 
-Object.assign(BaseStubber.prototype, {
+_.extend(BaseStubber.prototype, {
   responsesDir: null,
   matchersFile: null,
 
@@ -102,7 +102,7 @@ Object.assign(BaseStubber.prototype, {
     .then(function () {
       var match = this.getMatcher(req);
       if (match) {
-        this.log(`  Matched "${match.res.filename}"`);
+        this.log('  Matched ' + match.res.filename);
         this.requestsMade[match.res.filename] = true;
         var filePath = path.resolve(this.responsesDir, match.res.filename);
         return readFile(filePath)
@@ -179,7 +179,7 @@ Object.assign(BaseStubber.prototype, {
   saveAndReturnStub: function(req, res) {
     return Promise.resolve()
     .then(function () {
-      this.log(`  Request was not matched - requesting ${req.url}`);
+      this.log('  Request was not matched - requesting ' + req.url);
       var newRequestData = {
         method: req.method,
         uri: this.liveSite + req.url,
@@ -202,7 +202,7 @@ Object.assign(BaseStubber.prototype, {
         this.saveMatcher(matcher)
       ])
       .then(function () {
-        this.log(`  Saved matcher '${matcher.res.filename}'`);
+        this.log('  Saved matcher ' + matcher.res.filename);
         return res.status(liveResponse.statusCode).end(liveResponse.body);
       }.bind(this));
     }.bind(this))

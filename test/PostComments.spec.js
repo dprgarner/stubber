@@ -15,8 +15,9 @@ const writeFile = Promise.promisify(fs.writeFile);
 const dir = path.resolve(__dirname, 'comments');
 const APP_PORT = 3005;
 const LIVE_PORT = 3006;
-const appUri = 'http://localhost:' + APP_PORT;
-const liveUri = 'http://localhost:' + LIVE_PORT;
+const HOSTNAME = 'http://' + (process.env.HOSTNAME || 'localhost');
+const appUri = HOSTNAME + ':' + APP_PORT;
+const liveUri = HOSTNAME + ':' + LIVE_PORT;
 
 var postRequests = [{
   req: {
