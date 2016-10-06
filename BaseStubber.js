@@ -120,6 +120,17 @@ Object.assign(BaseStubber.prototype, {
     }.bind(this));
   },
 
+  // Given a file name without extension, ensure that no other matching
+  // filename exists and that the filename is not ridiculously long.
+  shortenAndMakeUnique: function (name) {
+    if (name.length > 128 || _.some(this.matchers, function (matcher) {
+      return matcher.res.filename.split('.')[0] === name;
+    })) {
+      name = name.slice(0, 118) + '_' + Date.now().toString().slice(-9);
+    }
+    return name;
+  },
+
   // Generates a name for the matcher from the request object.
   getMatcherName: function(req) {
     var nameComponents = [req.path.replace(/\//g, '_').slice(1)];
@@ -139,7 +150,7 @@ Object.assign(BaseStubber.prototype, {
   createMatcher: function (req, liveResponse) {
     var contentType = liveResponse.headers['content-type'];
     var extension = typeIs(contentType, 'json') ? '.json' : '';
-    var name = this.getMatcherName(req);
+    var name = this.shortenAndMakeUnique(this.getMatcherName(req));
 
     var matcher = {
       req: {

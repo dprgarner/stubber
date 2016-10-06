@@ -143,6 +143,23 @@ describe('GetComments in existing-matchers mode', function () {
       });
     }.bind(this));
   });
+
+  it('shortens long names', function () {
+    var longName = [
+      'aaaaaaaaaaaaaaaa1111111111111111',
+      'aaaaaaaaaaaaaaaa1111111111111111',
+      'aaaaaaaaaaaaaaaa1111111111111111',
+      'aaaaaaaaaaaaaaaa1111111111111111',
+      'b',
+    ].join('');
+    var name = this.getComments.shortenAndMakeUnique(longName);
+    expect(name).to.have.length(128).and.to.not.equal(longName);
+  });
+
+  it('makes names unique', function () {
+    var name = this.getComments.shortenAndMakeUnique('comments_postId-1');
+    expect(name).to.not.equal('comments_postId-1');
+  });
 });
 
 describe('GetComments in create-matchers mode', function () {
