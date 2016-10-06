@@ -6,11 +6,12 @@ const equal = require('deep-equal')
 const jsonParser = require('body-parser').json()
 const Promise = require('bluebird');
 const request = require('request-promise');
+const typeIs = require('type-is').is;
 
 const queryDictsMatch = require('./utils').queryDictsMatch;
 
-const writeFile = Promise.promisify(fs.writeFile);
 const readFile = Promise.promisify(fs.readFile);
+const writeFile = Promise.promisify(fs.writeFile);
 
 function BaseStubber(app, opts) {
   if (!fs.existsSync(this.responsesDir)) fs.mkdirSync(this.responsesDir);
@@ -134,15 +135,19 @@ Object.assign(BaseStubber.prototype, {
   },
 
   // A function for determining how the saved matcher is generated from the
-  // request.
+  // request and live response.
   createMatcher: function (req, liveResponse) {
+    var contentType = liveResponse.headers['content-type'];
+    var extension = typeIs(contentType, 'json') ? '.json' : '';
+    var filename = this.getMatcherName(req) + extension;
+
     var matcher = {
       req: {
         path: req.path,
         query: req.query,
       },
       res: {
-        filename: this.getMatcherName(req) + '.json',
+        filename: filename,
         statusCode: liveResponse.statusCode,
       },
     };
