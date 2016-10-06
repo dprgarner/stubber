@@ -167,24 +167,27 @@ Object.assign(BaseStubber.prototype, {
         method: req.method,
         uri: this.liveSite + req.url,
         query: req.query,
+        resolveWithFullResponse: true,
       };
       if (req.body) newRequestData.body = JSON.stringify(req.body);
       return request(newRequestData)
     }.bind(this))
-    .then(function (body) {
+    .then(function (liveResponse) {
       var matcher = this.createMatcher(req);
       return Promise.all([
-        writeFile(path.resolve(this.responsesDir, matcher.res.filename), body),
+        writeFile(
+          path.resolve(this.responsesDir, matcher.res.filename), liveResponse.body
+        ),
         this.saveMatcher()
       ])
       .then(function () {
         this.log(`  Saved matcher '${matcher.res.filename}'`);
-        return res.type('json').end(body);
+        return res.end(liveResponse.body);
       }.bind(this));
     }.bind(this))
     .catch(function (err) {
       return this.handleError(req, res, err)
-    });
+    }.bind(this));
   },
 });
 
