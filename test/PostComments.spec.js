@@ -7,7 +7,11 @@ const Promise = require('bluebird');
 const request = require('request-promise');
 const rmdirSync = require('rimraf').sync;
 
-const PostComments = require('./PostComments');
+const BaseStubber = require('../BaseStubber');
+const PostComments = BaseStubber.extend({
+  responsesDir: path.resolve(__dirname, 'comments'),
+  matchersFile: path.resolve(__dirname, 'comments', 'requests.json'),
+});
 
 const readFile = Promise.promisify(fs.readFile);
 const writeFile = Promise.promisify(fs.writeFile);
@@ -93,7 +97,7 @@ describe('PostComments in existing-matchers mode', function () {
       path.resolve(dir, 'comments_hello-world.json'), JSON.stringify(responseJson)
     );
     fs.writeFileSync(
-      path.resolve(dir, 'postRequests.json'), JSON.stringify(postRequests)
+      path.resolve(dir, 'requests.json'), JSON.stringify(postRequests)
     );
     return setUpApp.call(this, {});
   });
@@ -223,7 +227,7 @@ describe('PostComments in create-matchers mode', function () {
         JSON.stringify(this.alternateResponse)
       );
       fs.writeFileSync(
-        path.resolve(dir, 'postRequests.json'),
+        path.resolve(dir, 'requests.json'),
         JSON.stringify(postRequests)
       );
       return setUpApp.call(this, {liveSite: liveUri});

@@ -16,7 +16,7 @@ describe('utils', function () {
       expect(utils.queryDictsMatch(dict1, dict2)).to.be.true;
     });
 
-    it('returns true if arrays have same elements', function () {
+    it('returns true if arrays have same elements in a different order', function () {
       var dict1 = {a: ['1', '2']};
       var dict2 = {a: ['2', '1']};
       expect(utils.queryDictsMatch(dict1, dict2)).to.be.true;

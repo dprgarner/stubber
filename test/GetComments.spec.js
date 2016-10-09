@@ -7,7 +7,11 @@ const Promise = require('bluebird');
 const request = require('request-promise');
 const rmdirSync = require('rimraf').sync;
 
-const GetComments = require('./GetComments');
+const BaseStubber = require('../BaseStubber');
+const GetComments = BaseStubber.extend({
+  responsesDir: path.resolve(__dirname, 'comments'),
+  matchersFile: path.resolve(__dirname, 'comments', 'requests.json'),
+});
 
 const readFile = Promise.promisify(fs.readFile);
 const writeFile = Promise.promisify(fs.writeFile);
