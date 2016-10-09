@@ -25,3 +25,13 @@ To start in stub-generation mode, run `node index.js -- --site <uri>`. Again, if
 Stubber classes are defined by extending `BaseStubber`, see e.g. `GetComments` and `PostComments` in the test suite. These test classes have been trialled against [https://jsonplaceholder.typicode.com](https://jsonplaceholder.typicode.com).
 
 On a clean close, the Stubber will (hopefully) output the matched and unmatched saved requests made during the run.
+
+--------
+TODO:
+
+- Signals aren't being matched
+- test_signals
+- test_search_box_market_size
+- test_market_size_block
+
+- Do this as responses data should not be on Github https://help.github.com/articles/remove-sensitive-data/

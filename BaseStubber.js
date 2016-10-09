@@ -6,6 +6,7 @@ const equal = require('deep-equal')
 const jsonParser = require('body-parser').json()
 const Promise = require('bluebird');
 const request = require('request-promise');
+const sanitize = require('sanitize-filename');
 const typeIs = require('type-is').is;
 
 const queryDictsMatch = require('./utils').queryDictsMatch;
@@ -121,8 +122,14 @@ _.extend(BaseStubber.prototype, {
   },
 
   // Given a file name without extension, ensure that no other matching
-  // filename exists and that the filename is not ridiculously long.
-  shortenAndMakeUnique: function (name) {
+  // filename exists, that no strange characters appear in the name, and that
+  // the filename is not ridiculously long.
+  // TODO test this string-sanitizing...
+  shortenAndMakeUnique: function (unsafeName) {
+    var name = sanitize(unsafeName, {replacement: '_'});
+    name = name.replace(/\./g, '_');
+    name = name.replace(/\s/g, '_');
+
     if (name.length > 128 || _.some(this.matchers, function (matcher) {
       return matcher.res.filename.split('.')[0] === name;
     })) {
@@ -133,7 +140,7 @@ _.extend(BaseStubber.prototype, {
 
   // Generates a name for the matcher from the request object.
   getMatcherName: function(req) {
-    var nameComponents = [req.path.replace(/\//g, '_').slice(1)];
+    var nameComponents = [req.path.slice(1)];
     nameComponents = nameComponents.concat(_.map(req.query, function (val, key) {
       var valString = (_.isArray(val)) ? val.join('-') : val;
       return key +  '-' + valString;

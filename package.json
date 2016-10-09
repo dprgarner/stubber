@@ -24,7 +24,8 @@
     "request": "^2.75.0",
     "request-promise": "^4.1.1",
     "type-is": "^1.6.13",
-    "rimraf": "~2.5.0"
+    "rimraf": "~2.5.0",
+    "sanitize-filename": "~1.6.1"
   },
   "devDependencies": {
     "chai": "^3.5.0",
