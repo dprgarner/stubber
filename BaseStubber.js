@@ -76,7 +76,8 @@ _.extend(BaseStubber.prototype, {
   // matches a saved request.
   isMatch: function(req, matcherReq) {
     return (
-      req.path === matcherReq.path
+      req.method === matcherReq.method
+      && req.path === matcherReq.path
       && queryDictsMatch(req.query, matcherReq.query)
       && equal(req.body, matcherReq.body)
     );
@@ -109,7 +110,7 @@ _.extend(BaseStubber.prototype, {
         return readFile(filePath)
         .then(function (body) {
           return res.status(match.res.statusCode).end(body);
-        })
+        });
       } else if (this.liveSite) {
         return next();
       } else {
@@ -161,6 +162,7 @@ _.extend(BaseStubber.prototype, {
 
     var matcher = {
       req: {
+        method: req.method,
         path: req.path,
         query: req.query,
       },

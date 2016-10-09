@@ -21,6 +21,7 @@ const liveUri = HOSTNAME + ':' + LIVE_PORT;
 
 var postRequests = [{
   req: {
+    method: 'POST',
     path: '/comments',
     query: {},
     body: {hello: 'world'},
@@ -199,6 +200,7 @@ describe('PostComments in create-matchers mode', function () {
         expect(matchers).to.have.length(initialLength + 1);
         expect(matchers[initialLength]).to.deep.equal({
           req: {
+            method: 'POST',
             path: '/comments',
             query: {},
             body: {hello: 'world'},

@@ -21,6 +21,7 @@ const liveUri = HOSTNAME + ':' + LIVE_PORT;
 
 var getRequests = [{
   req: {
+    method: 'GET',
     path: '/comments',
     query: {postId: '1'},
   },
@@ -30,6 +31,7 @@ var getRequests = [{
   },
 }, {
   req: {
+    method: 'GET',
     path: '/comments',
     query: {postId: '2'},
   },
