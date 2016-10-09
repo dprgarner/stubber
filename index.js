@@ -19,17 +19,6 @@ if (program.site) opts.liveSite = program.site;
 var app = express();
 app.get('/favicon.ico', function (req, res) {});
 
-/*
-// These have been tested against https://jsonplaceholder.typicode.com
-const GetComments = require('./test/GetComments');
-const PostComments = require('./test/PostComments');
-
-var stubbers = [
-  new GetComments(app, opts),
-  new PostComments(app, opts),
-];
-*/
-
 const BaseStubber = require('./BaseStubber.js');
 
 var GeneralStubber = BaseStubber.extend({
