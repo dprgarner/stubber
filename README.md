@@ -33,5 +33,3 @@ TODO:
 - test_signals
 - test_search_box_market_size
 - test_market_size_block
-
-- Do this as responses data should not be on Github https://help.github.com/articles/remove-sensitive-data/
