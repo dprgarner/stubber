@@ -18,6 +18,8 @@ winston.remove(winston.transports.Console);
 winston.add(winston.transports.Console, {'timestamp': true});
 
 function BaseStubber(app, opts) {
+  if (!this.matchersFile) throw new Error('Undefined matchers file');
+  if (!this.responsesDir) throw new Error('Undefined responses directory');
   if (!fs.existsSync(this.responsesDir)) fs.mkdirSync(this.responsesDir);
   this.liveSite = opts.liveSite;
 
@@ -39,18 +41,21 @@ function BaseStubber(app, opts) {
   this.initialize(app, opts);
 }
 
-BaseStubber.extend = function (newPrototype) {
+var extend = function (newPrototype) {
+  var parent = this;
   function SubClass() {
-    return BaseStubber.apply(this, arguments);
-  };
+    return parent.apply(this, arguments);
+  }
   SubClass.prototype = _.create(BaseStubber.prototype, newPrototype);
   SubClass.prototype.constructor = SubClass;
+  SubClass.extend = extend;
   return SubClass;
 };
+BaseStubber.extend = extend
 
 _.extend(BaseStubber.prototype, {
-  responsesDir: null,
   matchersFile: null,
+  responsesDir: null,
 
   handleError: function(req, res, err) {
     var errorObject = {
