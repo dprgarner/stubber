@@ -136,119 +136,115 @@ describe('CommentsStubber in existing-matchers mode', function () {
     return tearDownApp.call(this);
   });
 
-  describe('GET', function () {
-    it('returns previously-saved stubs', function () {
-      return request({
-        uri: appUri + '/comments?postId=1',
-        json: true,
-      })
-      .then(function (actualJson) {
-        expect(responseJson).to.deep.equal(actualJson);
-      });
-    });
-
-    it('errors when matcher does not exist', function () {
-      return request({
-        uri: appUri + '/comments?postId=3',
-        json: true,
-      })
-      .then(function () {
-        throw new Error('Expected an error response');
-      })
-      .catch(function (err) {
-        if (!err.statusCode) throw err;
-        expect(err.statusCode).to.equal(500);
-      });
-    });
-
-    it('records all requests made', function () {
-      return request({
-        uri: appUri + '/comments?postId=1',
-        json: true,
-      })
-      .then(function () {
-        expect(this.commentsStubber.requestsMade).to.deep.equal({
-          'comments_hello-world.json': false,
-          'comments_postId-1.json': true,
-          'comments_postId-2.json': false,
-        });
-      }.bind(this));
-    });
-
-    it('shortens long names', function () {
-      var longName = [
-        'aaaaaaaaaaaaaaaa1111111111111111',
-        'aaaaaaaaaaaaaaaa1111111111111111',
-        'aaaaaaaaaaaaaaaa1111111111111111',
-        'aaaaaaaaaaaaaaaa1111111111111111',
-        'b',
-      ].join('');
-      var name = this.commentsStubber.shortenAndMakeUnique(longName);
-      expect(name).to.have.length(128).and.to.not.equal(longName);
-    });
-
-    it('makes names unique', function () {
-      var name = this.commentsStubber.shortenAndMakeUnique('comments_postId-1');
-      expect(name).to.not.equal('comments_postId-1');
+  it('returns previously-saved stubs from GETs', function () {
+    return request({
+      uri: appUri + '/comments?postId=1',
+      json: true,
+    })
+    .then(function (actualJson) {
+      expect(responseJson).to.deep.equal(actualJson);
     });
   });
 
-  describe('POST', function () {
-    it('returns previously-saved stubs and status codes', function () {
-      return request({
-        uri: appUri + '/comments',
-        json: true,
-        method: 'POST',
-        body: {hello: 'world'},
-        resolveWithFullResponse: true,
-      })
-      .then(function (res) {
-        expect(res.body).to.deep.equal(responseJson);
-        expect(res.statusCode).to.equal(201);
-      });
+  it('returns previously-saved stubs and status codes from POSTs', function () {
+    return request({
+      uri: appUri + '/comments',
+      json: true,
+      method: 'POST',
+      body: {hello: 'world'},
+      resolveWithFullResponse: true,
+    })
+    .then(function (res) {
+      expect(res.body).to.deep.equal(responseJson);
+      expect(res.statusCode).to.equal(201);
     });
+  });
 
-    it('errors when matcher does not exist', function () {
-      return request({
-        uri: appUri + '/comments',
-        json: true,
-        method: 'POST',
-        body: {hello: 'not the world'},
-      })
-      .then(function () {
-        throw new Error('Expected an error response');
-      })
-      .catch(function (err) {
-        if (!err.statusCode) throw err;
-        expect(err.statusCode).to.equal(500);
-      });
+  it('errors when there is no matching query', function () {
+    return request({
+      uri: appUri + '/comments?postId=3',
+      json: true,
+    })
+    .then(function () {
+      throw new Error('Expected an error response');
+    })
+    .catch(function (err) {
+      if (!err.statusCode) throw err;
+      expect(err.statusCode).to.equal(500);
     });
+  });
 
-    it('errors when matcher exists but stub file does not exist', function () {
-      this.commentsStubber.matchers.push({
-        req: {
-          path: '/comments',
-          query: {},
-          body: {hello: 'guys'},
-        },
-        res: {
-          filename: 'missing-file.json',
-        },
-      });
-      return request({
-        uri: appUri + '/comments',
-        json: true,
-        method: 'POST',
+  it('errors when there is no matching post body', function () {
+    return request({
+      uri: appUri + '/comments',
+      json: true,
+      method: 'POST',
+      body: {hello: 'not the world'},
+    })
+    .then(function () {
+      throw new Error('Expected an error response');
+    })
+    .catch(function (err) {
+      if (!err.statusCode) throw err;
+      expect(err.statusCode).to.equal(500);
+    });
+  });
+
+  it('errors when matcher exists but stub file does not exist', function () {
+    this.commentsStubber.matchers.push({
+      req: {
+        path: '/comments',
+        query: {},
         body: {hello: 'guys'},
-      })
-      .then(function () {
-        throw new Error('Expected an error response');
-      })
-      .catch(function (err) {
-        if (!err.statusCode) throw err;
-        expect(err.statusCode).to.equal(500);
-      });
+      },
+      res: {
+        filename: 'missing-file.json',
+      },
     });
+    return request({
+      uri: appUri + '/comments',
+      json: true,
+      method: 'POST',
+      body: {hello: 'guys'},
+    })
+    .then(function () {
+      throw new Error('Expected an error response');
+    })
+    .catch(function (err) {
+      if (!err.statusCode) throw err;
+      expect(err.statusCode).to.equal(500);
+    });
+  });
+
+  it('records all requests made', function () {
+    return request({
+      uri: appUri + '/comments?postId=1',
+      json: true,
+    })
+    .then(function () {
+      expect(this.commentsStubber.requestsMade).to.deep.equal({
+        'comments_hello-world.json': false,
+        'comments_postId-1.json': true,
+        'comments_postId-2.json': false,
+      });
+    }.bind(this));
+  });
+
+  it('shortens long names', function () {
+    var longName = [
+      'aaaaaaaaaaaaaaaa1111111111111111',
+      'aaaaaaaaaaaaaaaa1111111111111111',
+      'aaaaaaaaaaaaaaaa1111111111111111',
+      'aaaaaaaaaaaaaaaa1111111111111111',
+      'b',
+    ].join('');
+    var name = this.commentsStubber.shortenAndMakeUnique(longName);
+    expect(name).to.have.length(128).and.to.not.equal(longName);
+  });
+
+  it('makes names unique', function () {
+    var name = this.commentsStubber.shortenAndMakeUnique('comments_postId-1');
+    expect(name).to.not.equal('comments_postId-1');
   });
 });
 
@@ -262,66 +258,62 @@ describe('CommentsStubber in create-matchers mode', function () {
       return tearDownApp.call(this);
     });
 
-    describe('GET', function () {
-      it('saves and returns unrecognised responses', function () {
-        return request({
-          uri: appUri + '/comments?postId=1',
-          json: true,
-        })
-        .then(function (responseJson) {
-          return readFile(path.resolve(dir, 'comments_postId-1.json'))
-          .then(function(fileString) {
-            var fileBody = JSON.parse(fileString);
-            expect(fileBody).to.deep.equal(responseJson);
-          });
+    it('saves and returns unrecognised responses to GETs', function () {
+      return request({
+        uri: appUri + '/comments?postId=1',
+        json: true,
+      })
+      .then(function (responseJson) {
+        return readFile(path.resolve(dir, 'comments_postId-1.json'))
+        .then(function(fileString) {
+          var fileBody = JSON.parse(fileString);
+          expect(fileBody).to.deep.equal(responseJson);
         });
       });
     });
 
-    describe('POST', function () {
-      it('saves and returns unrecognised responses', function () {
-        return request({
-          uri: appUri + '/comments',
-          json: true,
-          method: 'POST',
-          body: {hello: 'world'},
-          resolveWithFullResponse: true,
-        })
-        .then(function (res) {
-          return readFile(path.resolve(dir, 'comments_hello-world.json'))
-          .then(function(fileString) {
-            var fileBody = JSON.parse(fileString);
-            expect(res.body).to.deep.equal(fileBody);
-            expect(res.statusCode).to.equal(201);
-          });
+    it('saves and returns unrecognised responses to POSTs', function () {
+      return request({
+        uri: appUri + '/comments',
+        json: true,
+        method: 'POST',
+        body: {hello: 'world'},
+        resolveWithFullResponse: true,
+      })
+      .then(function (res) {
+        return readFile(path.resolve(dir, 'comments_hello-world.json'))
+        .then(function(fileString) {
+          var fileBody = JSON.parse(fileString);
+          expect(res.body).to.deep.equal(fileBody);
+          expect(res.statusCode).to.equal(201);
         });
       });
+    });
 
-      it('creates new matchers', function () {
-        var initialLength = this.commentsStubber.matchers.length;
-        return request({
-          uri: appUri + '/comments',
-          json: true,
-          method: 'POST',
-          body: {hello: 'world'},
-        })
-        .then(function () {
-          var matchers = this.commentsStubber.matchers;
-          expect(matchers).to.have.length(initialLength + 1);
-          expect(matchers[initialLength]).to.deep.equal({
-            req: {
-              method: 'POST',
-              path: '/comments',
-              query: {},
-              body: {hello: 'world'},
-            },
-            res: {
-              filename: 'comments_hello-world.json',
-              statusCode: 201,
-            },
-          });
-        }.bind(this));
-      });
+    it('creates new matchers', function () {
+      var initialLength = this.commentsStubber.matchers.length;
+      return request({
+        uri: appUri + '/comments',
+        json: true,
+        method: 'POST',
+        body: {hello: 'world'},
+      })
+      .then(function () {
+        var matchers = this.commentsStubber.matchers;
+        expect(matchers).to.have.length(initialLength + 1);
+        expect(matchers[initialLength]).to.deep.equal({
+          req: {
+            method: 'POST',
+            path: '/comments',
+            query: {},
+            body: {hello: 'world'},
+          },
+          res: {
+            filename: 'comments_hello-world.json',
+            statusCode: 201,
+          },
+        });
+      }.bind(this));
     });
   });
 
@@ -348,46 +340,42 @@ describe('CommentsStubber in create-matchers mode', function () {
       return tearDownApp.call(this);
     });
 
-    describe('GET', function () {
-      it('returns previously-saved stubs', function () {
-        return request({
-          uri: appUri + '/comments?postId=1',
-          json: true,
-        })
-        .then(function (actualJson) {
-          expect(actualJson).to.deep.equal(this.alternateResponse);
-        }.bind(this));
-      });
-
-      it('errors if the new matcher does not match the request', function () {
-        this.commentsStubber.createMatcher = function () {
-          return {req: {bad: 'matcher'}, res: {filename: 'comments_postId-1.json'}};
-        };
-        return request({
-          uri: appUri + '/comments?postId=3',
-          json: true,
-        })
-        .then(function () {
-          throw new Error('Expected an error response');
-        })
-        .catch(function (err) {
-          if (!err.statusCode) throw err;
-          expect(err.statusCode).to.equal(500);
-        });
-      });
+    it('returns previously-saved stubs from GETs', function () {
+      return request({
+        uri: appUri + '/comments?postId=1',
+        json: true,
+      })
+      .then(function (actualJson) {
+        expect(actualJson).to.deep.equal(this.alternateResponse);
+      }.bind(this));
     });
 
-    describe('POST', function () {
-      it('returns previously-saved stubs', function () {
-        return request({
-          uri: appUri + '/comments',
-          json: true,
-          method: 'POST',
-          body: {hello: 'world'},
-        })
-        .then(function (actualJson) {
-          expect(actualJson).to.deep.equal(this.alternateResponse);
-        }.bind(this));
+    it('returns previously-saved stubs from POSTs', function () {
+      return request({
+        uri: appUri + '/comments',
+        json: true,
+        method: 'POST',
+        body: {hello: 'world'},
+      })
+      .then(function (actualJson) {
+        expect(actualJson).to.deep.equal(this.alternateResponse);
+      }.bind(this));
+    });
+
+    it('errors if the new matcher does not match the request', function () {
+      this.commentsStubber.createMatcher = function () {
+        return {req: {bad: 'matcher'}, res: {filename: 'comments_postId-1.json'}};
+      };
+      return request({
+        uri: appUri + '/comments?postId=3',
+        json: true,
+      })
+      .then(function () {
+        throw new Error('Expected an error response');
+      })
+      .catch(function (err) {
+        if (!err.statusCode) throw err;
+        expect(err.statusCode).to.equal(500);
       });
     });
   });
