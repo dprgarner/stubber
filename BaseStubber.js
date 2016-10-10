@@ -124,7 +124,6 @@ _.extend(BaseStubber.prototype, {
   // Given a file name without extension, ensure that no other matching
   // filename exists, that no strange characters appear in the name, and that
   // the filename is not ridiculously long.
-  // TODO test this string-sanitizing...
   shortenAndMakeUnique: function (unsafeName) {
     var name = sanitize(unsafeName, {replacement: '_'});
     name = name.replace(/\./g, '_');

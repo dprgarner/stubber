@@ -114,7 +114,7 @@ function setUpApp(opts) {
   }.bind(this))
   .then(function(server) {
     this.liveServer = server;
-    this.liveServer.setTimeout(500);
+    this.liveServer.setTimeout(100);
   }.bind(this));
 }
 
@@ -246,6 +246,11 @@ describe('CommentsStubber in existing-matchers mode', function () {
   it('makes names unique', function () {
     var name = this.commentsStubber.shortenAndMakeUnique('comments_postId-1');
     expect(name).to.not.equal('comments_postId-1');
+  });
+
+  it('sanitizes names', function () {
+    var name = this.commentsStubber.shortenAndMakeUnique('/**oi!z/0 q.q');
+    expect(name).to.equal('___oi!z_0_q_q');
   });
 });
 
