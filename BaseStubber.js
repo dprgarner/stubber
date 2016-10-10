@@ -8,11 +8,14 @@ const Promise = require('bluebird');
 const request = require('request-promise');
 const sanitize = require('sanitize-filename');
 const typeIs = require('type-is').is;
+const winston = require('winston');
 
 const queryDictsMatch = require('./utils').queryDictsMatch;
 
 const readFile = Promise.promisify(fs.readFile);
 const writeFile = Promise.promisify(fs.writeFile);
+winston.remove(winston.transports.Console);
+winston.add(winston.transports.Console, {'timestamp': true});
 
 function BaseStubber(app, opts) {
   if (!fs.existsSync(this.responsesDir)) fs.mkdirSync(this.responsesDir);
@@ -49,18 +52,16 @@ _.extend(BaseStubber.prototype, {
   responsesDir: null,
   matchersFile: null,
 
-  log: function(message) {
-    console.log(message);
-  },
-
   handleError: function(req, res, err) {
+    var requestInfo = JSON.stringify(
+      _.pick(req, ['path', 'query', 'body']), null, 2
+    );
     var errorMessage = [
       '  Error: ' + err.message,
-      '  Request Path: ' + req.path,
-      '  Request QueryDict: ' + JSON.stringify(req.query || {}),
-      '  Request Body: ' + JSON.stringify(req.body || ''),
+      '  Request object: ' + requestInfo,
     ].join('\n');
-    this.log(errorMessage);
+
+    winston.error(errorMessage);
     return res.status(500).end(errorMessage);
   },
 
@@ -85,10 +86,8 @@ _.extend(BaseStubber.prototype, {
 
   // Finds a matching stub, if any.
   getMatcher: function(req) {
-    this.log(
-      req.path
-      + ', ' + JSON.stringify(req.query)
-      + ', ' + JSON.stringify(req.body || '')
+    winston.debug('Request object: ' + JSON.stringify(
+      _.pick(req, ['path', 'query', 'body']), null, 2)
     );
 
     for (var i = 0; i < this.matchers.length; i++) {
@@ -104,7 +103,7 @@ _.extend(BaseStubber.prototype, {
     .then(function () {
       var match = this.getMatcher(req);
       if (match) {
-        this.log('  Matched ' + match.res.filename);
+        winston.info('  Matched ' + match.res.filename);
         this.requestsMade[match.res.filename] = true;
         var filePath = path.resolve(this.responsesDir, match.res.filename);
         return readFile(filePath)
@@ -188,7 +187,7 @@ _.extend(BaseStubber.prototype, {
   saveAndReturnStub: function(req, res) {
     return Promise.resolve()
     .then(function () {
-      this.log('  Request was not matched - requesting ' + req.url);
+      winston.info('  Request was not matched - requesting ' + req.url);
       var newRequestData = {
         method: req.method,
         uri: this.liveSite + req.url,
@@ -211,7 +210,7 @@ _.extend(BaseStubber.prototype, {
         this.saveMatcher(matcher)
       ])
       .then(function () {
-        this.log('  Saved matcher ' + matcher.res.filename);
+        winston.info('  Saved matcher ' + matcher.res.filename);
         return res.status(liveResponse.statusCode).end(liveResponse.body);
       }.bind(this));
     }.bind(this))

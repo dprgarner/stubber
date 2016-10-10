@@ -6,6 +6,7 @@ const express = require('express');
 const Promise = require('bluebird');
 const request = require('request-promise');
 const rmdirSync = require('rimraf').sync;
+const winston = require('winston');
 
 const BaseStubber = require('../BaseStubber');
 const CommentsStubber = BaseStubber.extend({
@@ -15,6 +16,7 @@ const CommentsStubber = BaseStubber.extend({
 
 const readFile = Promise.promisify(fs.readFile);
 const writeFile = Promise.promisify(fs.writeFile);
+winston.remove(winston.transports.Console);
 
 const dir = path.resolve(__dirname, 'comments');
 const APP_PORT = 3005;
@@ -104,7 +106,6 @@ function tearDownApp() {
 function setUpApp(opts) {
   var app = express();
   this.commentsStubber = new CommentsStubber(app, opts);
-  this.commentsStubber.log = function () {};
 
   return listen(app, APP_PORT)
   .then(function (server) {
