@@ -10,6 +10,7 @@ const winston = require('winston');
 
 const BaseStubber = require('../BaseStubber');
 const CommentsStubber = BaseStubber.extend({
+  name: 'CommentsStubber',
   responsesDir: path.resolve(__dirname, 'comments'),
   matchersFile: path.resolve(__dirname, 'comments', 'requests.json'),
 });

@@ -108,7 +108,7 @@ _.extend(BaseStubber.prototype, {
     .then(function () {
       var match = this.getMatcher(req);
       if (match) {
-        winston.info('  Matched ' + match.res.filename);
+        winston.debug('  Matched ' + match.res.filename);
         this.requestsMade[match.res.filename] = true;
         var filePath = path.resolve(this.responsesDir, match.res.filename);
         return readFile(filePath)
@@ -124,6 +124,16 @@ _.extend(BaseStubber.prototype, {
     .catch(function (err) {
       return this.handleError(req, res, err)
     }.bind(this));
+  },
+
+  getMatchedRequests: function () {
+    return _.keys(_.pickBy(this.requestsMade));
+  },
+
+  getUnmatchedRequests: function () {
+    return _.keys(_.pickBy(this.requestsMade, function (val) {
+      return !val;
+    }));
   },
 
   // Given a file name without extension, ensure that no other matching
@@ -191,7 +201,7 @@ _.extend(BaseStubber.prototype, {
   saveAndReturnStub: function(req, res) {
     return Promise.resolve()
     .then(function () {
-      winston.info('  Request was not matched - requesting ' + req.url);
+      winston.debug('  Request was not matched - requesting ' + req.url);
       var newRequestData = {
         method: req.method,
         uri: this.liveSite + req.url,
@@ -214,7 +224,7 @@ _.extend(BaseStubber.prototype, {
         this.saveMatcher(matcher)
       ])
       .then(function () {
-        winston.info('  Saved matcher and stub to ' + matcher.res.filename);
+        winston.debug('  Saved matcher and stub to ' + matcher.res.filename);
         return res.status(liveResponse.statusCode).end(liveResponse.body);
       }.bind(this));
     }.bind(this))
