@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 
 const _ = require('lodash');
@@ -5,19 +6,22 @@ const express = require('express');
 const program = require('commander');
 const winston = require('winston');
 
+var port;
 program
   .version('0.0.1')
-  .option('-p, --port <n>', 'Port number. Defaults to a random int between 58000-59999')
   .option('-s, --site <uri>', 'Generate stubs against a live site')
   .option('-v, --verbose')
-  .parse(process.argv);
+  .arguments('<port>')
+  .action(function (inputPort) {
+    port = inputPort;
+  });
+program.parse(process.argv);
+
+if (!port) program.help();
 
 const opts = {};
-const PORT = (program.port)
-  ? program.port
-  : 58000 + Math.floor(2000 * Math.random());
 if (program.site) opts.liveSite = program.site;
-winston.level = (program.verbose) ? 'info' : 'error';
+winston.level = (program.verbose) ? 'debug' : 'info';
 winston.add(winston.transports.File, {filename: 'log', json: false, timestamp: true});
 
 var app = express();
@@ -35,9 +39,9 @@ var stubbers = [
   new GeneralStubber(app, opts),
 ]
 
-var server = app.listen(PORT, function (err) {
+var server = app.listen(port, function (err) {
   if (err) throw err;
-  winston.info('\nStubber app listening on port ' + PORT);
+  winston.info('Stubber app listening on port ' + port);
   this.setTimeout(1000);
 });
 
