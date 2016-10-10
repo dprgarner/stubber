@@ -53,13 +53,13 @@ _.extend(BaseStubber.prototype, {
   matchersFile: null,
 
   handleError: function(req, res, err) {
-    var requestInfo = JSON.stringify(
-      _.pick(req, ['path', 'query', 'body']), null, 2
+    var errorObject = {
+      error: err.message,
+      req: _.pick(req, ['path', 'query', 'body']),
+    }
+    var errorMessage = JSON.stringify(
+      errorObject, null, 2
     );
-    var errorMessage = [
-      '  Error: ' + err.message,
-      '  Request object: ' + requestInfo,
-    ].join('\n');
 
     winston.error(errorMessage);
     return res.status(500).end(errorMessage);
@@ -209,7 +209,7 @@ _.extend(BaseStubber.prototype, {
         this.saveMatcher(matcher)
       ])
       .then(function () {
-        winston.info('  Saved matcher ' + matcher.res.filename);
+        winston.info('  Saved matcher and stub to ' + matcher.res.filename);
         return res.status(liveResponse.statusCode).end(liveResponse.body);
       }.bind(this));
     }.bind(this))

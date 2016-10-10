@@ -3,11 +3,13 @@ const path = require('path');
 const _ = require('lodash');
 const express = require('express');
 const program = require('commander');
+const winston = require('winston');
 
 program
   .version('0.0.1')
-  .option('-s, --site <uri>', 'Generate stubs against a live site')
   .option('-p, --port <n>', 'Port number. Defaults to a random int between 58000-59999')
+  .option('-s, --site <uri>', 'Generate stubs against a live site')
+  .option('-v, --verbose')
   .parse(process.argv);
 
 const opts = {};
@@ -15,6 +17,7 @@ const PORT = (program.port)
   ? program.port
   : 58000 + Math.floor(2000 * Math.random());
 if (program.site) opts.liveSite = program.site;
+winston.level = (program.verbose) ? 'info' : 'error';
 
 var app = express();
 app.get('/favicon.ico', function (req, res) {});
