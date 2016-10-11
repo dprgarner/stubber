@@ -8,18 +8,20 @@ const request = require('request-promise');
 const rmdirSync = require('rimraf').sync;
 const winston = require('winston');
 
-const BaseStubber = require('../BaseStubber');
-const CommentsStubber = BaseStubber.extend({
-  name: 'CommentsStubber',
-  responsesDir: path.resolve(__dirname, 'comments'),
-  matchersFile: path.resolve(__dirname, 'comments', 'requests.json'),
-});
+const _Base = require('../stubbers/_Base');
 
 const readFile = Promise.promisify(fs.readFile);
 const writeFile = Promise.promisify(fs.writeFile);
 winston.remove(winston.transports.Console);
 
-const dir = path.resolve(__dirname, 'comments');
+const dir = path.resolve(__dirname, 'responses');
+const matchers = path.resolve(dir, 'matchers.json');
+const BaseStubber = _Base.extend({
+  name: 'BaseStubber',
+  responsesDir: dir,
+  matchersFile: matchers,
+});
+
 const APP_PORT = 3005;
 const LIVE_PORT = 3006;
 const HOSTNAME = 'http://' + (process.env.HOSTNAME || 'localhost');
@@ -34,7 +36,7 @@ var requests = [
       query: {postId: '1'},
     },
     res: {
-      filename: 'comments_postId-1.json',
+      name: 'comments_postId-1.json',
       statusCode: 200,
     },
   },
@@ -45,7 +47,7 @@ var requests = [
       query: {postId: '2'},
     },
     res: {
-      filename: 'comments_postId-2.json',
+      name: 'comments_postId-2.json',
       statusCode: 200,
     },
   },
@@ -57,7 +59,7 @@ var requests = [
       body: {hello: 'world'},
     },
     res: {
-      filename: 'comments_hello-world.json',
+      name: 'comments_hello-world.json',
       statusCode: 201,
     },
   }
@@ -106,7 +108,7 @@ function tearDownApp() {
 
 function setUpApp(opts) {
   var app = express();
-  this.commentsStubber = new CommentsStubber(app, opts);
+  this.baseStubber = new BaseStubber(app, opts);
 
   return listen(app, APP_PORT)
   .then(function (server) {
@@ -119,12 +121,10 @@ function setUpApp(opts) {
   }.bind(this));
 }
 
-describe('CommentsStubber in existing-matchers mode', function () {
+describe('BaseStubber in existing-matchers mode', function () {
   beforeEach(function () {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    fs.writeFileSync(
-      path.resolve(dir, 'requests.json'), JSON.stringify(requests)
-    );
+    fs.writeFileSync(matchers, JSON.stringify(requests));
     fs.writeFileSync(
       path.resolve(dir, 'comments_postId-1.json'), JSON.stringify(responseJson)
     );
@@ -193,14 +193,14 @@ describe('CommentsStubber in existing-matchers mode', function () {
   });
 
   it('errors when matcher exists but stub file does not exist', function () {
-    this.commentsStubber.matchers.push({
+    this.baseStubber.matchers.push({
       req: {
         path: '/comments',
         query: {},
         body: {hello: 'guys'},
       },
       res: {
-        filename: 'missing-file.json',
+        name: 'missing-file.json',
       },
     });
     return request({
@@ -224,12 +224,35 @@ describe('CommentsStubber in existing-matchers mode', function () {
       json: true,
     })
     .then(function () {
-      expect(this.commentsStubber.requestsMade).to.deep.equal({
-        'comments_hello-world.json': false,
-        'comments_postId-1.json': true,
-        'comments_postId-2.json': false,
+      expect(this.baseStubber._requestsMade).to.deep.equal({
+        'comments_hello-world.json': 0,
+        'comments_postId-1.json': 1,
+        'comments_postId-2.json': 0,
       });
     }.bind(this));
+  });
+
+  it('returns a list of matched requests', function () {
+    this.baseStubber._requestsMade = {
+      'comments_hello-world.json': 0,
+      'comments_postId-1.json': 1,
+      'comments_postId-2.json': 2,
+    };
+    expect(this.baseStubber.getMatchedRequests()).to.deep.equal([
+      'comments_postId-1.json',
+      'comments_postId-2.json',
+    ]);
+  });
+
+  it('returns a list of unmatched requests', function () {
+    this.baseStubber._requestsMade = {
+      'comments_hello-world.json': 0,
+      'comments_postId-1.json': 1,
+      'comments_postId-2.json': 2,
+    };
+    expect(this.baseStubber.getUnmatchedRequests()).to.deep.equal([
+      'comments_hello-world.json',
+    ]);
   });
 
   it('shortens long names', function () {
@@ -240,22 +263,22 @@ describe('CommentsStubber in existing-matchers mode', function () {
       'aaaaaaaaaaaaaaaa1111111111111111',
       'b',
     ].join('');
-    var name = this.commentsStubber.shortenAndMakeUnique(longName);
+    var name = this.baseStubber.shortenAndMakeUnique(longName);
     expect(name).to.have.length(128).and.to.not.equal(longName);
   });
 
   it('makes names unique', function () {
-    var name = this.commentsStubber.shortenAndMakeUnique('comments_postId-1');
+    var name = this.baseStubber.shortenAndMakeUnique('comments_postId-1');
     expect(name).to.not.equal('comments_postId-1');
   });
 
   it('sanitizes names', function () {
-    var name = this.commentsStubber.shortenAndMakeUnique('/**oi!z/0 q.q');
-    expect(name).to.equal('___oi!z_0_q_q');
+    var name = this.baseStubber.shortenAndMakeUnique('/**oi!z/0@ q.q');
+    expect(name).to.equal('___oi!z_0__q_q');
   });
 });
 
-describe('CommentsStubber in create-matchers mode', function () {
+describe('BaseStubber in create-matchers mode', function () {
   describe('without existing matchers', function () {
     beforeEach(function () {
       return setUpApp.call(this, {liveSite: liveUri});
@@ -298,7 +321,7 @@ describe('CommentsStubber in create-matchers mode', function () {
     });
 
     it('creates new matchers', function () {
-      var initialLength = this.commentsStubber.matchers.length;
+      var initialLength = this.baseStubber.matchers.length;
       return request({
         uri: appUri + '/comments',
         json: true,
@@ -306,7 +329,7 @@ describe('CommentsStubber in create-matchers mode', function () {
         body: {hello: 'world'},
       })
       .then(function () {
-        var matchers = this.commentsStubber.matchers;
+        var matchers = this.baseStubber.matchers;
         expect(matchers).to.have.length(initialLength + 1);
         expect(matchers[initialLength]).to.deep.equal({
           req: {
@@ -316,9 +339,23 @@ describe('CommentsStubber in create-matchers mode', function () {
             body: {hello: 'world'},
           },
           res: {
-            filename: 'comments_hello-world.json',
+            name: 'comments_hello-world.json',
             statusCode: 201,
           },
+        });
+      }.bind(this));
+    });
+
+    it('records all requests made', function () {
+      return request({
+        uri: appUri + '/comments',
+        json: true,
+        method: 'POST',
+        body: {hello: 'world'},
+      })
+      .then(function () {
+        expect(this.baseStubber._requestsMade).to.deep.equal({
+          'comments_hello-world.json': 1,
         });
       }.bind(this));
     });
@@ -336,10 +373,7 @@ describe('CommentsStubber in create-matchers mode', function () {
         path.resolve(dir, 'comments_hello-world.json'),
         JSON.stringify(this.alternateResponse)
       );
-      fs.writeFileSync(
-        path.resolve(dir, 'requests.json'),
-        JSON.stringify(requests)
-      );
+      fs.writeFileSync(matchers, JSON.stringify(requests));
       return setUpApp.call(this, {liveSite: liveUri});
     });
 
@@ -370,8 +404,8 @@ describe('CommentsStubber in create-matchers mode', function () {
     });
 
     it('errors if the new matcher does not match the request', function () {
-      this.commentsStubber.createMatcher = function () {
-        return {req: {bad: 'matcher'}, res: {filename: 'comments_postId-1.json'}};
+      this.baseStubber.createMatcher = function () {
+        return {req: {bad: 'matcher'}, res: {name: 'comments_postId-1.json'}};
       };
       return request({
         uri: appUri + '/comments?postId=3',

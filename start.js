@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 
 const _ = require('lodash');
@@ -24,9 +25,10 @@ const opts = {};
 if (program.site) opts.liveSite = program.site;
 winston.level = (program.verbose) ? 'debug' : 'info';
 winston.add(winston.transports.File, {
-    filename: 'log',
-    json: false,
-    timestamp: true,
+  filename: 'log',
+  json: false,
+  timestamp: true,
+  level: 'debug',
 });
 
 function closeDown() {
@@ -68,17 +70,16 @@ app.get('/', function (req, res) {
     displayReadme(res);
 });
 
-const BaseStubber = require('./BaseStubber.js');
-
-var GeneralStubber = BaseStubber.extend({
-  name: 'GeneralStubber',
-  responsesDir: path.resolve(__dirname, 'responses'),
-  matchersFile: path.resolve(__dirname, 'matchers.json'),
+var stubberDirectory = fs.readdirSync(path.resolve(__dirname, 'stubbers'));
+var stubberClasses = _.filter(_.map(stubberDirectory, function (file) {
+  if (file[0] !== '.' && file[0] !== '_') return require('./stubbers/' + file);
+}));
+var stubbers = _.map(stubberClasses, function (Stubber) {
+  return new Stubber(app, opts);
 });
-
-var stubbers = [
-  new GeneralStubber(app, opts),
-]
+const BaseStubber = require('./stubbers/_Base');
+const MiscStubber = BaseStubber.extend({name: 'Misc'});
+stubbers.push(new MiscStubber(app, opts));
 
 var server = app.listen(port, function (err) {
   if (err) throw err;

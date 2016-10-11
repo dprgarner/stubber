@@ -19,5 +19,3 @@ To start in standard mode on (e.g.) port 12345, run `node start.js 12345` or `./
 To start in stub-generation mode, run `./start --site <uri> 12345`. Again, if a request is made against Stubber, it will check its own saved requests files for a match. If it finds a match, it will return the saved matching response. If it does not find a match, it will continue to the live site, return the response to the client, and save the request and response stubs.
 
 Stubber classes are defined by extending `BaseStubber`. An example `CommentsStubber` is included in the test suite. This test class has been trialled against [https://jsonplaceholder.typicode.com](https://jsonplaceholder.typicode.com).
-
-TODO test getRequestMatches

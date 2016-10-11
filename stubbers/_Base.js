@@ -10,7 +10,7 @@ const sanitize = require('sanitize-filename');
 const typeIs = require('type-is').is;
 const winston = require('winston');
 
-const queryDictsMatch = require('./utils').queryDictsMatch;
+const queryDictsMatch = require('../utils').queryDictsMatch;
 
 const readFile = Promise.promisify(fs.readFile);
 const writeFile = Promise.promisify(fs.writeFile);
@@ -18,8 +18,12 @@ winston.remove(winston.transports.Console);
 winston.add(winston.transports.Console, {'timestamp': true});
 
 function BaseStubber(app, opts) {
-  if (!this.matchersFile) throw new Error('Undefined matchers file');
-  if (!this.responsesDir) throw new Error('Undefined responses directory');
+  if (!this.responsesDir) this.responsesDir = path.resolve(
+    __dirname, '..', 'data', this.name + 'Responses'
+  );
+  if (!this.matchersFile) this.matchersFile = path.resolve(
+    __dirname, '..', 'data', this.name + '.json'
+  );
   if (!fs.existsSync(this.responsesDir)) fs.mkdirSync(this.responsesDir);
   this.liveSite = opts.liveSite;
 
@@ -30,9 +34,9 @@ function BaseStubber(app, opts) {
     else throw err;
   }
 
-  this.requestsMade = {};
-  _.each(this.matchers, function (val) {
-    this.requestsMade[val.res.filename] = false;
+  this._requestsMade = {};
+  _.each(this.matchers, function (matcher) {
+    this.setMatchedRequests(matcher, 0);
   }.bind(this));
 
   this.matchRequest = this.matchRequest.bind(this);
@@ -54,8 +58,7 @@ var extend = function (newPrototype) {
 BaseStubber.extend = extend
 
 _.extend(BaseStubber.prototype, {
-  matchersFile: null,
-  responsesDir: null,
+  name: 'BaseStubber',
 
   handleError: function(req, res, err) {
     var errorObject = {
@@ -102,19 +105,23 @@ _.extend(BaseStubber.prototype, {
     }
   },
 
+  relaySavedResponse: function (res, match) {
+    var filePath = path.resolve(this.responsesDir, match.res.name);
+    return readFile(filePath)
+    .then(function (body) {
+      winston.debug('  Matched ' + match.res.name);
+      return res.status(match.res.statusCode).end(body);
+    });
+  },
+
   // Middleware which attempts to match a request to a stub.
   matchRequest: function(req, res, next) {
     return Promise.resolve()
     .then(function () {
       var match = this.getMatcher(req);
       if (match) {
-        winston.debug('  Matched ' + match.res.filename);
-        this.requestsMade[match.res.filename] = true;
-        var filePath = path.resolve(this.responsesDir, match.res.filename);
-        return readFile(filePath)
-        .then(function (body) {
-          return res.status(match.res.statusCode).end(body);
-        });
+        this.incrementMatchedRequests(match);
+        return this.relaySavedResponse(res, match);
       } else if (this.liveSite) {
         return next();
       } else {
@@ -126,26 +133,33 @@ _.extend(BaseStubber.prototype, {
     }.bind(this));
   },
 
+  setMatchedRequests: function (matcher, value) {
+    this._requestsMade[matcher.res.name] = value;
+  },
+
+  incrementMatchedRequests: function (matcher) {
+    this._requestsMade[matcher.res.name] += 1;
+  },
+
   getMatchedRequests: function () {
-    return _.keys(_.pickBy(this.requestsMade));
+    return _.keys(_.pickBy(this._requestsMade));
   },
 
   getUnmatchedRequests: function () {
-    return _.keys(_.pickBy(this.requestsMade, function (val) {
-      return !val;
-    }));
+    return _.keys(_.omitBy(this._requestsMade));
   },
 
   // Given a file name without extension, ensure that no other matching
-  // filename exists, that no strange characters appear in the name, and that
-  // the filename is not ridiculously long.
+  // name exists, that no strange characters appear in the name, and that
+  // the name is not ridiculously long.
   shortenAndMakeUnique: function (unsafeName) {
     var name = sanitize(unsafeName, {replacement: '_'});
     name = name.replace(/\./g, '_');
     name = name.replace(/\s/g, '_');
+    name = name.replace(/@/g, '_');
 
     if (name.length > 128 || _.some(this.matchers, function (matcher) {
-      return matcher.res.filename.split('.')[0] === name;
+      return matcher.res.name.split('.')[0] === name;
     })) {
       name = name.slice(0, 118) + '_' + Date.now().toString().slice(-9);
     }
@@ -180,7 +194,7 @@ _.extend(BaseStubber.prototype, {
         query: req.query,
       },
       res: {
-        filename: name + extension,
+        name: name + extension,
         statusCode: liveResponse.statusCode,
       },
     };
@@ -188,12 +202,38 @@ _.extend(BaseStubber.prototype, {
     return matcher;
   },
 
+  makeLiveRequest: function (req) {
+    var newRequestData = {
+      method: req.method,
+      uri: this.liveSite + req.url,
+      query: req.query,
+      resolveWithFullResponse: true,
+    };
+    if (req.body) newRequestData.body = JSON.stringify(req.body);
+    return request(newRequestData);
+  },
+
+  saveResponse: function (matcher, liveResponse) {
+    return writeFile(
+      path.resolve(this.responsesDir, matcher.res.name), liveResponse.body
+    ).then(function () {
+      winston.debug('  Saved stub to file to ' + matcher.res.name);
+    }.bind(this));
+  },
+
   // Appends the matcher to the json file and saves.
   saveMatcher: function(matcher) {
     this.matchers.push(matcher);
     return writeFile(this.matchersFile, JSON.stringify(
       this.matchers, null, 2
-    ));
+    ))
+    .then(function () {
+      winston.debug('  Saved matcher to file ' + this.matchersFile);
+    }.bind(this));
+  },
+
+  relayLiveResponse: function (res, liveResponse) {
+    return res.status(liveResponse.statusCode).end(liveResponse.body);
   },
 
   // Middleware which creates the matcher, saves the response stub, and
@@ -202,14 +242,7 @@ _.extend(BaseStubber.prototype, {
     return Promise.resolve()
     .then(function () {
       winston.debug('  Request was not matched - requesting ' + req.url);
-      var newRequestData = {
-        method: req.method,
-        uri: this.liveSite + req.url,
-        query: req.query,
-        resolveWithFullResponse: true,
-      };
-      if (req.body) newRequestData.body = JSON.stringify(req.body);
-      return request(newRequestData)
+      return this.makeLiveRequest(req);
     }.bind(this))
     .then(function (liveResponse) {
       var matcher = this.createMatcher(req, liveResponse);
@@ -217,15 +250,13 @@ _.extend(BaseStubber.prototype, {
       if (!this.isMatch(req, matcher.req)) {
         throw new Error('Created matcher must match the current request');
       }
+      this.setMatchedRequests(matcher, 1);
       return Promise.all([
-        writeFile(
-          path.resolve(this.responsesDir, matcher.res.filename), liveResponse.body
-        ),
-        this.saveMatcher(matcher)
+        this.saveResponse(matcher, liveResponse),
+        this.saveMatcher(matcher),
       ])
       .then(function () {
-        winston.debug('  Saved matcher and stub to ' + matcher.res.filename);
-        return res.status(liveResponse.statusCode).end(liveResponse.body);
+        return this.relayLiveResponse(res, liveResponse);
       }.bind(this));
     }.bind(this))
     .catch(function (err) {
