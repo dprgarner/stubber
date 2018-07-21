@@ -1,12 +1,12 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const _ = require('lodash');
-const express = require('express');
-const program = require('commander');
-const winston = require('winston');
+import _ from 'lodash';
+import express from 'express';
+import program from 'commander';
+import winston from 'winston';
 
-const displayReadme = require('./utils').displayReadme;
+import { displayReadme } from './utils';
 
 var port;
 program
@@ -14,7 +14,7 @@ program
   .option('-s, --site <uri>', 'Generate stubs against a live site')
   .option('-v, --verbose')
   .arguments('<port>')
-  .action(function (inputPort) {
+  .action(function(inputPort) {
     port = inputPort;
   });
 program.parse(process.argv);
@@ -23,7 +23,7 @@ if (!port) program.help();
 
 const opts = {};
 if (program.site) opts.liveSite = program.site;
-winston.level = (program.verbose) ? 'debug' : 'info';
+winston.level = program.verbose ? 'debug' : 'info';
 winston.add(winston.transports.File, {
   filename: 'log',
   json: false,
@@ -35,7 +35,7 @@ function closeDown() {
   var matchedNumber = 0;
   var unmatchedNumber = 0;
   winston.info('Closing down Stubber server');
-  _.each(stubbers, function (stubber) {
+  _.each(stubbers, function(stubber) {
     var matchedRequestInfo = {
       stubber: stubber.name,
       matchedRequests: stubber.getMatchedRequests(),
@@ -48,10 +48,10 @@ function closeDown() {
   winston.info(matchedNumber + ' matched requests');
   winston.info(unmatchedNumber + ' unmatched requests');
 
-  server.close(function () {
-    setTimeout(function () {
+  server.close(function() {
+    setTimeout(function() {
       process.exit(0);
-    }, 10)
+    }, 10);
   });
 }
 
@@ -59,29 +59,32 @@ process.on('SIGINT', closeDown);
 process.on('SIGTERM', closeDown);
 
 var app = express();
-app.get('/favicon.ico', function (req, res) {});
-app.get('/theme.css', function (req, res) {
-    res.sendFile(path.resolve(
-        'node_modules', 'github-markdown-css', 'github-markdown.css'
-    ));
+app.get('/favicon.ico', function(req, res) {});
+app.get('/theme.css', function(req, res) {
+  res.sendFile(
+    path.resolve('node_modules', 'github-markdown-css', 'github-markdown.css')
+  );
 });
-app.get('/', function (req, res) {
-    winston.debug('Displaying readme');
-    displayReadme(res);
+app.get('/', function(req, res) {
+  winston.debug('Displaying readme');
+  displayReadme(res);
 });
 
 var stubberDirectory = fs.readdirSync(path.resolve(__dirname, 'stubbers'));
-var stubberClasses = _.filter(_.map(stubberDirectory, function (file) {
-  if (file[0] !== '.' && file[0] !== '_') return require('./stubbers/' + file);
-}));
-var stubbers = _.map(stubberClasses, function (Stubber) {
+var stubberClasses = _.filter(
+  _.map(stubberDirectory, function(file) {
+    if (file[0] !== '.' && file[0] !== '_')
+      return require('./stubbers/' + file);
+  })
+);
+var stubbers = _.map(stubberClasses, function(Stubber) {
   return new Stubber(app, opts);
 });
-const BaseStubber = require('./stubbers/_Base');
-const MiscStubber = BaseStubber.extend({name: 'Misc'});
+import BaseStubber from './stubbers/_Base';
+const MiscStubber = BaseStubber.extend({ name: 'Misc' });
 stubbers.push(new MiscStubber(app, opts));
 
-var server = app.listen(port, function (err) {
+var server = app.listen(port, function(err) {
   if (err) throw err;
   winston.info('Stubber app listening on port ' + port);
   if (program.site) {

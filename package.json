@@ -1,36 +1,41 @@
 {
   "name": "stubber",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "An HTTP imposter which can save stubs against a live site.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dprgarner/stubber.git"
   },
-  "main": "index.js",
+  "main": "build/index.js",
   "scripts": {
-    "test": "mocha -c test/*.spec.js"
+    "start": "node build/index.js",
+    "build": "babel src --out-dir build --copy-files --source-maps inline",
+    "test": "mocha --require babel-register -c test/*.spec.js"
   },
   "author": "David Garner",
   "license": "ISC",
   "dependencies": {
-    "bluebird": "^3.4.6",
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-plugin-transform-util-promisify": "^0.2.2",
+    "babel-preset-env": "^1.7.0",
+    "babel-register": "^6.26.0",
     "body-parser": "^1.15.2",
     "commander": "^2.9.0",
     "deep-equal": "^1.0.1",
     "express": "^4.14.0",
+    "github-markdown-css": "~2.4.1",
     "lodash": "^4.16.2",
+    "marked": "~0.3.6",
     "request": "^2.75.0",
     "request-promise": "^4.1.1",
-    "type-is": "^1.6.13",
     "sanitize-filename": "~1.6.1",
-    "winston": "~2.2.0",
-    "marked": "~0.3.6",
-    "github-markdown-css": "~2.4.1"
+    "type-is": "^1.6.13",
+    "winston": "~2.2.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
-    "mocha": "^3.1.0",
-    "nodemon": "^1.10.2",
+    "mocha": "^4",
     "rimraf": "2.5.0",
     "sinon": "^1.17.6"
   }
