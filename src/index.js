@@ -6,11 +6,12 @@ import express from 'express';
 import program from 'commander';
 import winston from 'winston';
 
+import BaseStubber from './BaseStubber';
 import { displayReadme } from './utils';
 
 var port;
 program
-  .version('0.0.1')
+  .version(process.env.npm_package_version)
   .option('-s, --site <uri>', 'Generate stubs against a live site')
   .option('-v, --verbose')
   .arguments('<port>')
@@ -80,7 +81,6 @@ var stubberClasses = _.filter(
 var stubbers = _.map(stubberClasses, function(Stubber) {
   return new Stubber(app, opts);
 });
-import BaseStubber from './stubbers/_Base';
 const MiscStubber = BaseStubber.extend({ name: 'Misc' });
 stubbers.push(new MiscStubber(app, opts));
 

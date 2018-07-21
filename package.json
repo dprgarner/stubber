@@ -17,8 +17,10 @@
   "dependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.3",
+    "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-plugin-transform-util-promisify": "^0.2.2",
     "babel-preset-env": "^1.7.0",
+    "babel-preset-stage-2": "^6.24.1",
     "babel-register": "^6.26.0",
     "body-parser": "^1.15.2",
     "commander": "^2.9.0",

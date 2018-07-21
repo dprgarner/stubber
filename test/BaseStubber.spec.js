@@ -8,19 +8,14 @@ import request from 'request-promise';
 import { sync as rmdirSync } from 'rimraf';
 import winston from 'winston';
 
-import _Base from '../src/BaseStubber';
+import BaseStubber from '../src/BaseStubber';
 
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 winston.remove(winston.transports.Console);
 
-const dir = path.resolve(__dirname, 'responses');
-const matchers = path.resolve(dir, 'matchers.json');
-const BaseStubber = _Base.extend({
-  name: 'BaseStubber',
-  responsesDir: dir,
-  matchersFile: matchers,
-});
+const responsesDir = path.resolve(__dirname, 'responses');
+const matchersFile = path.resolve(responsesDir, 'matchers.json');
 
 const APP_PORT = 3005;
 const LIVE_PORT = 3006;
@@ -75,14 +70,13 @@ var responseJson = [
   },
 ];
 
-function listen(app, port) {
-  return new Promise(function(resolve, reject) {
-    var server = app.listen(port, function(err) {
+const listen = (app, port) =>
+  new Promise((resolve, reject) => {
+    var server = app.listen(port, err => {
       if (err) return reject(err);
       return resolve(server);
     });
   });
-}
 
 // Sets up a dummy live server that accepts gets and posts.
 function setUpLiveServer() {
@@ -97,7 +91,7 @@ function setUpLiveServer() {
 }
 
 function tearDownApp(appServer, liveServer) {
-  if (fs.existsSync(dir)) rmdirSync(dir);
+  if (fs.existsSync(responsesDir)) rmdirSync(responsesDir);
 
   var closeApp = promisify(appServer.close.bind(appServer));
   var closeLive = promisify(liveServer.close.bind(liveServer));
@@ -106,7 +100,11 @@ function tearDownApp(appServer, liveServer) {
 
 function setUpApp(opts) {
   var app = express();
-  this.baseStubber = new BaseStubber(app, opts);
+  this.baseStubber = new BaseStubber(app, {
+    ...opts,
+    matchersFile,
+    responsesDir,
+  });
 
   return listen(app, APP_PORT)
     .then(server => {
@@ -121,14 +119,14 @@ function setUpApp(opts) {
 
 describe('BaseStubber in existing-matchers mode', function() {
   beforeEach(function() {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    fs.writeFileSync(matchers, JSON.stringify(requests));
+    if (!fs.existsSync(responsesDir)) fs.mkdirSync(responsesDir);
+    fs.writeFileSync(matchersFile, JSON.stringify(requests));
     fs.writeFileSync(
-      path.resolve(dir, 'comments_postId-1.json'),
+      path.resolve(responsesDir, 'comments_postId-1.json'),
       JSON.stringify(responseJson)
     );
     fs.writeFileSync(
-      path.resolve(dir, 'comments_hello-world.json'),
+      path.resolve(responsesDir, 'comments_hello-world.json'),
       JSON.stringify(responseJson)
     );
     return setUpApp.call(this, {});
@@ -294,12 +292,12 @@ describe('BaseStubber in create-matchers mode', function() {
         uri: appUri + '/comments?postId=1',
         json: true,
       }).then(function(responseJson) {
-        return readFile(path.resolve(dir, 'comments_postId-1.json')).then(
-          function(fileString) {
-            var fileBody = JSON.parse(fileString);
-            expect(fileBody).to.deep.equal(responseJson);
-          }
-        );
+        return readFile(
+          path.resolve(responsesDir, 'comments_postId-1.json')
+        ).then(function(fileString) {
+          var fileBody = JSON.parse(fileString);
+          expect(fileBody).to.deep.equal(responseJson);
+        });
       });
     });
 
@@ -311,13 +309,13 @@ describe('BaseStubber in create-matchers mode', function() {
         body: { hello: 'world' },
         resolveWithFullResponse: true,
       }).then(function(res) {
-        return readFile(path.resolve(dir, 'comments_hello-world.json')).then(
-          function(fileString) {
-            var fileBody = JSON.parse(fileString);
-            expect(res.body).to.deep.equal(fileBody);
-            expect(res.statusCode).to.equal(201);
-          }
-        );
+        return readFile(
+          path.resolve(responsesDir, 'comments_hello-world.json')
+        ).then(function(fileString) {
+          var fileBody = JSON.parse(fileString);
+          expect(res.body).to.deep.equal(fileBody);
+          expect(res.statusCode).to.equal(201);
+        });
       });
     });
 
@@ -366,17 +364,17 @@ describe('BaseStubber in create-matchers mode', function() {
 
   describe('with existing matchers', function() {
     beforeEach(function() {
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+      if (!fs.existsSync(responsesDir)) fs.mkdirSync(responsesDir);
       this.alternateResponse = { different: 'response' };
       fs.writeFileSync(
-        path.resolve(dir, 'comments_postId-1.json'),
+        path.resolve(responsesDir, 'comments_postId-1.json'),
         JSON.stringify(this.alternateResponse)
       );
       fs.writeFileSync(
-        path.resolve(dir, 'comments_hello-world.json'),
+        path.resolve(responsesDir, 'comments_hello-world.json'),
         JSON.stringify(this.alternateResponse)
       );
-      fs.writeFileSync(matchers, JSON.stringify(requests));
+      fs.writeFileSync(matchersFile, JSON.stringify(requests));
       return setUpApp.call(this, { liveSite: liveUri });
     });
 
